@@ -24,7 +24,7 @@ def ansible_update_dag():
     )
     install_packages = BashOperator(
         task_id="install_packages",
-        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /opt/airflow/dags/airflow_ansible_requirements.txt"
+        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /opt/airflow/dags/pyreqs/airflow_ansible_requirements.txt"
     )
 
     install_ansilbe_packages = BashOperator(
