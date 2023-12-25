@@ -1,0 +1,3 @@
+Numpy
+rasterio==1.3.9
+fmiopendata
