@@ -7,7 +7,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
 
 @dag(
-    schedule="25 13 * * *",
+    schedule="25 20 * * *",
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
     default_args={
@@ -41,6 +41,7 @@ def google_sheets_stocks_el():
         import os.path
         import yaml
 
+        from airflow.providers.postgres.hooks.postgres import PostgresHook
         from google.auth.transport.requests import Request
         from google.oauth2.service_account import Credentials
         from google_auth_oauthlib.flow import InstalledAppFlow
