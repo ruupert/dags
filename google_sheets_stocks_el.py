@@ -36,7 +36,7 @@ def google_sheets_stocks_el():
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
     )
-    def extract(account, hook):
+    def extract(account, hook, execute_query_with_conn_obj):
 
         import os.path
         import yaml
@@ -69,8 +69,10 @@ def google_sheets_stocks_el():
                     execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
         except HttpError as err:
             print(err)
-    etl = extract(account=Variable.get("google_sheets_account"),
-                                hook=hook)
+
+    etl = extract(Variable.get("google_sheets_account"),
+                                hook,
+                                execute_query_with_conn_obj)
     create_stocks_tables >> etl
 
 google_sheets_stocks_el()
