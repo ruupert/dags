@@ -47,11 +47,11 @@ def google_sheets_stocks_el():
         from googleapiclient.discovery import build
         from googleapiclient.errors import HttpError
         from googleapiclient import discovery
-
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
         SAMPLE_RANGE_NAME = 'A2:B99999'
 
         creds = Credentials.from_service_account_info(account)
+        tickers = hook.get_records("SELECT * FROM tickers;")
         try:
             service = build('sheets', 'v4', credentials=creds)
             sheet = service.spreadsheets()
@@ -67,10 +67,8 @@ def google_sheets_stocks_el():
                     execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
         except HttpError as err:
             print(err)
-    data = hook.get_records("SELECT * FROM tickers;")
     etl = extract(account=Variable.get("google_sheets_account"),
-                                tickers=data,
                                 hook=hook)
-    create_stocks_tables >> data >> etl
+    create_stocks_tables >> etl
 
 google_sheets_stocks_el()
