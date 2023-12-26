@@ -67,10 +67,10 @@ def google_sheets_stocks_el():
                     execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
         except HttpError as err:
             print(err)
-    create_stocks_tables >> etl
-
+    data = hook.get_records("SELECT * FROM tickers;")
     etl = extract(account=Variable.get("google_sheets_account"),
-                                tickers=hook.get_records("SELECT * FROM tickers;"),
+                                tickers=data,
                                 hook=hook)
+    create_stocks_tables >> data >> etl
 
 google_sheets_stocks_el()
