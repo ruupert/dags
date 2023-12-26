@@ -36,12 +36,11 @@ def google_sheets_stocks_el():
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
     )
-    def extract(account, hook, execute_query_with_conn_obj):
+    def extract(account, hook):
 
         import os.path
         import yaml
         import json
-
         from airflow.providers.postgres.hooks.postgres import PostgresHook
         from google.auth.transport.requests import Request
         from google.oauth2.service_account import Credentials
@@ -51,9 +50,9 @@ def google_sheets_stocks_el():
         from googleapiclient import discovery
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
         SAMPLE_RANGE_NAME = 'A2:B99999'
-
         creds = Credentials.from_service_account_info(json.loads(account))
         tickers = hook.get_records("SELECT * FROM tickers;")
+        tuples = []
         try:
             service = build('sheets', 'v4', credentials=creds)
             sheet = service.spreadsheets()
@@ -66,13 +65,18 @@ def google_sheets_stocks_el():
                     return
                 for row in values:
                     data_tuple = (row[0],item[1], row[1])
-                    execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
+                    tuples.append(data_tuple)
         except HttpError as err:
             print(err)
+        return tuples
 
-    etl = extract(Variable.get("google_sheets_account"),
-                                hook,
-                                execute_query_with_conn_obj)
-    create_stocks_tables >> etl
+    @task()
+    def load_prices(tuples, hook: PostgresHook):
+        for data_tuple in tuples:
+            execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s) ON CONFLICT (date, ticker, price) DO NOTHING""",data_tuple, hook)
+
+    extract_data = extract(account=Variable.get("google_sheets_account"))
+    load_data = load_prices(extract_data, hook)
+    create_stocks_tables >> extract_data >> load_data 
 
 google_sheets_stocks_el()
