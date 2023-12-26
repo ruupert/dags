@@ -27,25 +27,16 @@ def google_sheets_stocks_el():
         cur.execute(query, datatuple)
         conn.commit()
 
-
     create_stocks_tables = PostgresOperator(
         task_id="create_stocks_tables",
         postgres_conn_id="stocks",
         sql="sql/google_scheets_stocks_el_schema.sql",
     )
 
-    get_tickers = PostgresOperator(
-        task_id="get_tickers",
-        postgres_conn_id="postgres_default",
-        sql="SELECT * FROM tickers;",
-    )
-
-
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
     )
-    def extract(account, tickers):
-        from __future__ import print_function
+    def extract(account, tickers, hook: PostgresHook):
 
         import os.path
         import yaml
@@ -64,35 +55,22 @@ def google_sheets_stocks_el():
         try:
             service = build('sheets', 'v4', credentials=creds)
             sheet = service.spreadsheets()
-            for item in conf['tickers']:
+            for item in tickers:
                 result = sheet.values().get(spreadsheetId=item['sheet'],
                                             range=SAMPLE_RANGE_NAME).execute()
                 values = result.get('values', [])
-
                 if not values:
                     print('No data found.')
                     return
-
                 for row in values:
-                    # Print columns A and E, which correspond to indices 0 and 4.
-                    db.insert_or_update(row, item['ticker'])
-                    #print('%s, %s' % (row[0], row[4]))
+                    data_tuple = (row[0],item['ticker'], row[1])
+                    execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
         except HttpError as err:
             print(err)
 
-
-    @task()
-    def load_consumption(df, hook: PostgresHook):
-        for row in df.itertuples():
-            if row[1]['status'] == 'valid':
-                data_tuple = (row[0].tz_localize('utc').tz_convert("Europe/Helsinki"), row[1]['value'])
-                execute_query_with_conn_obj("""INSERT INTO consumption (date, val) VALUES (%s, %s) ON CONFLICT (date) DO NOTHING""", data_tuple, hook)
-
-    tickers = get_tickers()
-    consumption_data = extract(account=Variable.get("google_sheets_account"),
-                                tickers=tickers)
-    create_stocks_tables >> get_tickers >> 
-    load_consumption(consumption_data, hook)
-    load_prices(price_data, hook)
+    etl = extract(account=Variable.get("google_sheets_account"),
+                                tickers=hook.get_records("SELECT * FROM tickers;"),
+                                hook=hook)
+    create_stocks_tables >> etl
 
 google_sheets_stocks_el()
