@@ -30,7 +30,7 @@ def google_sheets_stocks_el():
     create_stocks_tables = PostgresOperator(
         task_id="create_stocks_tables",
         postgres_conn_id="stocks",
-        sql="sql/google_scheets_stocks_el_schema.sql",
+        sql="sql/google_sheets_stocks_el_schema.sql",
     )
 
     @task.virtualenv(
