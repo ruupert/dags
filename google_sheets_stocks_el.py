@@ -77,7 +77,7 @@ def google_sheets_stocks_el():
     @task()
     def load_prices(tuples, hook: PostgresHook):
         for data_tuple in tuples:
-            execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s) ON CONFLICT (date, price, ticker_id) DO NOTHING""",data_tuple, hook)
+            execute_query_with_conn_obj("""INSERT INTO prices (date, price, ticker_id) VALUES (%s, %s, %s) ON CONFLICT (date, price, ticker_id) DO NOTHING""",data_tuple, hook)
 
     create_stocks_tables
     tickers = get_tickers(hook)
