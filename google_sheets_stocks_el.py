@@ -40,6 +40,7 @@ def google_sheets_stocks_el():
 
         import os.path
         import yaml
+        import json
 
         from airflow.providers.postgres.hooks.postgres import PostgresHook
         from google.auth.transport.requests import Request
@@ -51,7 +52,7 @@ def google_sheets_stocks_el():
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
         SAMPLE_RANGE_NAME = 'A2:B99999'
 
-        creds = Credentials.from_service_account_info(account)
+        creds = Credentials.from_service_account_info(json.loads(account))
         tickers = hook.get_records("SELECT * FROM tickers;")
         try:
             service = build('sheets', 'v4', credentials=creds)
