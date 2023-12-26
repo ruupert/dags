@@ -36,7 +36,7 @@ def google_sheets_stocks_el():
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
     )
-    def extract(account, hook):
+    def extract(account):
 
         import os.path
         import yaml
