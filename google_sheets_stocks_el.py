@@ -58,14 +58,14 @@ def google_sheets_stocks_el():
             service = build('sheets', 'v4', credentials=creds)
             sheet = service.spreadsheets()
             for item in tickers:
-                result = sheet.values().get(spreadsheetId=item['sheet'],
+                result = sheet.values().get(spreadsheetId=item[2],
                                             range=SAMPLE_RANGE_NAME).execute()
                 values = result.get('values', [])
                 if not values:
                     print('No data found.')
                     return
                 for row in values:
-                    data_tuple = (row[0],item['ticker'], row[1])
+                    data_tuple = (row[0],item[1], row[1])
                     execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s)""",data_tuple, hook)
         except HttpError as err:
             print(err)
