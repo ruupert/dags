@@ -33,10 +33,14 @@ def google_sheets_stocks_el():
         sql="sql/google_sheets_stocks_el_schema.sql",
     )
 
+    @task()
+    def get_tickers(hook: PostgresHook):
+        return hook.get_records("SELECT * FROM tickers;")
+
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
     )
-    def extract(account):
+    def extract(account, tickers):
 
         import os.path
         import yaml
@@ -51,7 +55,7 @@ def google_sheets_stocks_el():
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
         SAMPLE_RANGE_NAME = 'A2:B99999'
         creds = Credentials.from_service_account_info(json.loads(account))
-        tickers = hook.get_records("SELECT * FROM tickers;")
+        
         tuples = []
         try:
             service = build('sheets', 'v4', credentials=creds)
@@ -75,8 +79,10 @@ def google_sheets_stocks_el():
         for data_tuple in tuples:
             execute_query_with_conn_obj("""INSERT INTO prices (date, ticker, price) VALUES (%s, %s, %s) ON CONFLICT (date, ticker, price) DO NOTHING""",data_tuple, hook)
 
-    extract_data = extract(account=Variable.get("google_sheets_account"))
+    create_stocks_tables
+    tickers = get_tickers(hook)
+    extract_data = extract(account=Variable.get("google_sheets_account"), tickers=tickers)
     load_data = load_prices(extract_data, hook)
-    create_stocks_tables >> extract_data >> load_data 
+    create_stocks_tables >> tickers >> extract_data >> load_data 
 
 google_sheets_stocks_el()
