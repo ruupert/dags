@@ -78,7 +78,7 @@ def fmi_fcast_el():
     @task()
     def load_obs(tuples_lists, hook: PostgresHook):
         for row in tuples_lists['locs']:
-            execute_query_with_conn_obj("""INSERT INTO fcast_loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
+            execute_query_with_conn_obj("""INSERT INTO fcast_loc (name, fmisid, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
         for row in tuples_lists['obs']:
             execute_query_with_conn_obj("""INSERT INTO fcast (
                                     fcast_loc_id, 
