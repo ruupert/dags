@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS fcast_loc (
-                            fcast_loc_id INT GENERATED ALWAYS AS IDENTITY,
+                            fcast_loc_id INTEGER,
                             name TEXT,
-                            fmisid INTEGER,
                             latitude REAL,
                             longitude REAL,
                             PRIMARY KEY(fcast_loc_id));
