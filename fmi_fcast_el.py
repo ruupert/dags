@@ -50,8 +50,6 @@ def fmi_fcast_el():
         end_time = end_time.isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("ecmwf::forecast::surface::cities::multipointcoverage",
                                     args=["bbox=21,60,35,75",
-                                        "starttime=" + start_time,
-                                        "endtime=" + end_time,
                                         "timestep=60"])
         for key in obs.location_metadata.keys():
             loc_list.append((obs.location_metadata[key]['fmisid'], 
