@@ -90,7 +90,14 @@ def fmi_fcast_el():
                                     u_component_wind, 
                                     v_component_wind, 
                                     rain_mm_hr) 
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (fcast_loc_id, date) DO REPLACE""", row, hook)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (fcast_loc_id, date) DO UPDATE SET 
+                                    temp = EXCLUDED.temp,
+                                    hpa = EXCLUDED.hpa,
+                                    humidity = EXCLUDED.humidity,
+                                    geo_potential_h = EXCLUDED.geo_potential_h,
+                                    u_component_wind = EXCLUDED.u_component_wind,
+                                    v_component_wind = EXCLUDED.v_component_wind,
+                                    rain_mm_hr = EXCLUDED.rain_mm_hr;""", row, hook)
 
     extract_data = extract()
     create_electricity_tables >> extract_data
