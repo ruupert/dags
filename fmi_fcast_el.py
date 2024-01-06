@@ -89,13 +89,13 @@ def fmi_fcast_el():
                                     v_component_wind, 
                                     rain_mm_hr) 
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (fcast_loc_id, date) DO UPDATE SET 
-                                    temp = COALESCE(EXCLUDED.temp, temp),
-                                    hpa = COALESCE(EXCLUDED.hpa, hpa),
-                                    humidity = COALESCE(EXCLUDED.humidity, humidity),
-                                    geo_potential_h = COALESCE(EXCLUDED.geo_potential_h,geo_potential_h),
-                                    u_component_wind = COALESCE(EXCLUDED.u_component_wind, u_component_wind),
-                                    v_component_wind = COALESCE(EXCLUDED.v_component_wind, v_component_wind),
-                                    rain_mm_hr = COALESCE(EXCLUDED.rain_mm_hr, rain_mm_hr);""", row, hook)
+                                    temp = COALESCE(EXCLUDED.temp, fcast.temp),
+                                    hpa = COALESCE(EXCLUDED.hpa, fcast.hpa),
+                                    humidity = COALESCE(EXCLUDED.humidity, fcast.humidity),
+                                    geo_potential_h = COALESCE(EXCLUDED.geo_potential_h,fcast.geo_potential_h),
+                                    u_component_wind = COALESCE(EXCLUDED.u_component_wind, fcast.u_component_wind),
+                                    v_component_wind = COALESCE(EXCLUDED.v_component_wind, fcast.v_component_wind),
+                                    rain_mm_hr = COALESCE(EXCLUDED.rain_mm_hr, fcast.rain_mm_hr);""", row, hook)
 
     extract_data = extract()
     create_electricity_tables >> extract_data
