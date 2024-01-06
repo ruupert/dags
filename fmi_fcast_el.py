@@ -7,7 +7,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
 
 @dag(
-    schedule="0 */12 * * *",
+    schedule="0 */6 * * *",
     start_date=pendulum.datetime(2024, 1, 4, tz="UTC"),
     catchup=False,
     default_args={
@@ -44,12 +44,12 @@ def fmi_fcast_el():
         from fmiopendata.wfs import download_stored_query, get_stored_queries, get_stored_query_descriptions
         loc_list=[]
         obs_list=[]
-        end_time = dt.datetime.utcnow() - dt.timedelta(hours=3)
-        start_time = end_time - dt.timedelta(hours=24)
-        start_time = start_time.isoformat(timespec="seconds") + "Z"
-        end_time = end_time.isoformat(timespec="seconds") + "Z"
+        end_time = (dt.datetime.utcnow() + dt.timedelta(hours=40)).isoformat(timespec="seconds") + "Z"
+        start_time = (dt.datetime.utcnow() - dt.timedelta(hours=6)).isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("ecmwf::forecast::surface::cities::multipointcoverage",
                                     args=["bbox=21,60,35,75",
+                                        "starttime=" + start_time,
+                                        "endtime=" + end_time,                                
                                         "timestep=60"])
         for key in obs.location_metadata.keys():
             loc_list.append((obs.location_metadata[key]['fmisid'], 
