@@ -1,0 +1,10 @@
+apache-airflow
+apache-airflow[celery]
+apache-airflow[postgres]
+apache-airflow-providers-common-sql
+apache-airflow-providers-postgres
+apache-airflow[sentry]
+apache-airflow[pandas]
+apache-airflow[virtualenv]
+apache-airflow[github]
+Flask-Session==0.5.0
