@@ -64,7 +64,7 @@ def electricity_el():
         return df
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt'], system_site_packages=False
+        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt '], system_site_packages=False
     )
     def get_price(apikey):
         from datetime import datetime, timedelta, timezone, tzinfo
