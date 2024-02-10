@@ -38,7 +38,7 @@ def google_sheets_stocks_el():
         return hook.get_records("SELECT * FROM tickers;")
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt'], system_site_packages=False
+        requirements=['-r /opt/airflow/dags/pyreqs/google_sheets_stocks_el.txt '], system_site_packages=False
     )
     def extract(account, tickers):
 

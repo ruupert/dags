@@ -35,7 +35,7 @@ def electricity_el():
     )
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt'], system_site_packages=False
+        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt '], system_site_packages=False
     )
     def extract(username, password, delivery_site):
         import datetime
