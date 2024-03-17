@@ -25,24 +25,20 @@ def fingrid_el():
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
     )
-    def getDatasets(fingrid_apikey:str):
-        import urllib, json
-        import pandas as pd
-        urllib.disable_warnings()
+    def getDatasets(fingrid_apikey):
+        import requests, json
         url = f"https://data.fingrid.fi/api/datasets?page=1&pageSize=2000&orderBy=id"
         hdr = {
             'Cache-Control': 'no-cache',
-            'x-api-key': fingrid_apikey,
+            'x-api-key': f'{fingrid_apikey}',
         }
-        req = urllib.request.Request(url, headers=hdr)
-        req.get_method = lambda: 'GET'
-        response = urllib.request.urlopen(req)
-        datasets = json.loads(response.read())['data']
+        response = requests.get(url=url, headers=hdr, verify=False)
+        datasets = json.loads(response.content)
         res = []
         for dataset in datasets:
             tmp = {
-                "id": dataset['id'],
-                "name": dataset['nameEn'],
+                "id": dataset['data']['id'],
+                "name": dataset['data']['nameEn'],
             }
             res.append(tmp)
         return res
@@ -64,12 +60,12 @@ def fingrid_el():
         from datetime import datetime, timedelta
         import pandas as pd
 
-        import urllib
+        import urllib3
         import json
 
         import pandas as pd
 
-        urllib.disable_warnings()
+        urllib3.disable_warnings()
 
 
         def getPage(id, start, end, page, fingrid_apikey):
@@ -79,9 +75,9 @@ def fingrid_el():
                     'Cache-Control': 'no-cache',
                     'x-api-key': fingrid_apikey,
                 }
-                req = urllib.request.Request(url, headers=hdr)
+                req = urllib3.request.Request(url, headers=hdr)
                 req.get_method = lambda: 'GET'
-                response = urllib.request.urlopen(req)
+                response = urllib3.request.urlopen(req)
                 return json.loads(response.read())
             except Exception as e:
                 print(e)
@@ -117,7 +113,7 @@ def fingrid_el():
 
     get_datasets = getDatasets(fingrid_apikey=Variable.get("fingrid_apikey"))
     run_influxdb_task = createBucket(bucket="fingrid")
-    extract_and_load = extract(datasets=get_datasets, fingrid_apikey=Variable.get("fingrid_apikey"),influxdb_url=Variable.get("influxdb_url"), influxdb_token=Variable.get("influxdb_token", influxdb_org=Variable.get("influxdb_org"), bucket="fingrid"))
+    extract_and_load = extract(get_datasets, Variable.get("fingrid_apikey"),Variable.get("influxdb_token"), Variable.get("influxdb_url"), Variable.get("influxdb_org"), "fingrid")
 
     get_datasets >> run_influxdb_task >> extract_and_load
 
