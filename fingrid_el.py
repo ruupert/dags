@@ -117,7 +117,7 @@ def fingrid_el(fingrid_apikey:str):
 
     get_datasets = getDatasets()
     run_influxdb_task = createBucket(bucket="fingrid")
-    extract_and_load = extract(datasets=get_datasets, influxdb_url=Variable.get("influxdb_url"), influxdb_token=Variable.get("influxdb_token", influxdb_org=Variable.get("influxdb_org"), bucket="fingrid"))
+    extract_and_load = extract(datasets=get_datasets, fingrid_apikey=Variable.get("fingrid_apikey"),influxdb_url=Variable.get("influxdb_url"), influxdb_token=Variable.get("influxdb_token", influxdb_org=Variable.get("influxdb_org"), bucket="fingrid"))
 
     get_datasets >> run_influxdb_task >> extract_and_load
 
