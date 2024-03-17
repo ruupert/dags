@@ -8,6 +8,7 @@ from airflow.decorators import dag, task
 from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
 from typing import Dict, List
 
+
 @dag(
     schedule="25 13 * * *",
     start_date=pendulum.datetime(2024, 3, 16, tz="UTC"),
@@ -32,21 +33,23 @@ def fingrid_el():
             'Cache-Control': 'no-cache',
             'x-api-key': f'{fingrid_apikey}',
         }
-        response = requests.get(url=url, headers=hdr, verify=False)
-        datasets = json.loads(response.content)
+        response = requests.get(url=url, headers=hdr)
+        datasets = json.loads(response.content)['data']
         res = []
         for dataset in datasets:
             tmp = {
-                "id": dataset['data']['id'],
-                "name": dataset['data']['nameEn'],
+                "id": dataset['id'],
+                "name": dataset['nameEn'],
             }
             res.append(tmp)
         return res
 
     @task(task_id="influxdb_task")
-    def createBucket(bucket:str):
-        influxdb_hook = InfluxDBHook(conn_id="influxdb")
-        influxdb_hook.create_bucket(bucket, "Bucket for fingrid timeseries", influxdb_hook.org_name)
+    def createBucket(bucket, influxdb_token, influxdb_url, influxdb_org):
+        from influxdb_client import InfluxDBClient
+
+        with InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org, verify_ssl=False) as client:
+            client.buckets_api().create_bucket(bucket_name=bucket, description="Bucket for fingrid timeseries", org=influxdb_org)
             
 
     @task.virtualenv(
@@ -54,19 +57,14 @@ def fingrid_el():
     )
     def extract(datasets, fingrid_apikey:str, influxdb_token:str, influxdb_url:str, influxdb_org:str, bucket:str):
 
-        import influxdb_client, os, time
-        from influxdb_client import InfluxDBClient, Point, WritePrecision
+        import time
+        from influxdb_client import InfluxDBClient
         from influxdb_client.client.write_api import SYNCHRONOUS
         from datetime import datetime, timedelta
         import pandas as pd
-
-        import urllib3
+        import requests
         import json
-
         import pandas as pd
-
-        urllib3.disable_warnings()
-
 
         def getPage(id, start, end, page, fingrid_apikey):
             try:
@@ -75,15 +73,13 @@ def fingrid_el():
                     'Cache-Control': 'no-cache',
                     'x-api-key': fingrid_apikey,
                 }
-                req = urllib3.request.Request(url, headers=hdr)
-                req.get_method = lambda: 'GET'
-                response = urllib3.request.urlopen(req)
-                return json.loads(response.read())
+                response = requests.get(url=url, headers=hdr)
+                time.sleep(20)
+                return json.loads(response.content)
             except Exception as e:
                 print(e)
 
-        def insert(res, influxdb_url, influxdb_token, influxdb_org, bucket):
-    
+        def insert(res, measurement_name, influxdb_url, influxdb_token, influxdb_org, bucket):
             data_frame = pd.DataFrame(data=res['data'])
             data_frame.set_index('startTime', inplace=True)
 
@@ -91,7 +87,7 @@ def fingrid_el():
             with InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org, verify_ssl=False) as client:
                 with client.write_api() as write_api:
                     write_api.write(bucket=bucket, record=data_frame,
-                                    data_frame_measurement_name=res['name'])
+                                    data_frame_measurement_name=measurement_name)
 
         t = datetime.now()
         # start date should be the last inserted timeseries measurement and this would have to be forked having for each different starts
@@ -103,16 +99,22 @@ def fingrid_el():
             end = end_date.strftime("%Y-%m-%dT%H:%M:%S")
             page = 1
             res = getPage(dataset['id'], start, end, 1, fingrid_apikey )
-            insert(res, influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
-            while res['lastPage'] > page:
-                time.sleep(10)
-                page = page + 1
-                res = getPage(dataset['id'], start, end, page, fingrid_apikey)
-                insert(res, influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
+            time.sleep(20)
+            if len(res['data']) > 0:
+                insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
+                try:
+                    lastPage = res['lastPage']
+                except:
+                    lastPage = page
+                while lastPage > page:
+                    time.sleep(20)
+                    page = page + 1
+                    res = getPage(dataset['id'], dataset, start, end, page, fingrid_apikey)
+                    insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
 
 
     get_datasets = getDatasets(fingrid_apikey=Variable.get("fingrid_apikey"))
-    run_influxdb_task = createBucket(bucket="fingrid")
+    run_influxdb_task = createBucket("fingrid", Variable.get("influxdb_token"), Variable.get("influxdb_url"), Variable.get("influxdb_org"))
     extract_and_load = extract(get_datasets, Variable.get("fingrid_apikey"),Variable.get("influxdb_token"), Variable.get("influxdb_url"), Variable.get("influxdb_org"), "fingrid")
 
     get_datasets >> run_influxdb_task >> extract_and_load
