@@ -49,8 +49,10 @@ def fingrid_el():
         from influxdb_client import InfluxDBClient
 
         with InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org, verify_ssl=False) as client:
-            client.buckets_api().create_bucket(bucket_name=bucket, description="Bucket for fingrid timeseries", org=influxdb_org)
-            
+            try:
+                client.buckets_api().create_bucket(bucket_name=bucket, description="Bucket for fingrid timeseries", org=influxdb_org)
+            except:
+                pass
 
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
@@ -99,7 +101,6 @@ def fingrid_el():
             end = end_date.strftime("%Y-%m-%dT%H:%M:%S")
             page = 1
             res = getPage(dataset['id'], start, end, 1, fingrid_apikey )
-            time.sleep(20)
             if len(res['data']) > 0:
                 insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
                 try:
@@ -107,7 +108,6 @@ def fingrid_el():
                 except:
                     lastPage = page
                 while lastPage > page:
-                    time.sleep(20)
                     page = page + 1
                     res = getPage(dataset['id'], dataset, start, end, page, fingrid_apikey)
                     insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
