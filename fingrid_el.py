@@ -25,7 +25,7 @@ def fingrid_el():
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
     )
-    def getDatasets():
+    def getDatasets(fingrid_apikey:str):
         import urllib, json
         import pandas as pd
         urllib.disable_warnings()
