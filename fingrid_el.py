@@ -20,7 +20,7 @@ from typing import Dict, List
     tags=["electricity"],
 )
 
-def fingrid_el(fingrid_apikey:str):
+def fingrid_el():
 
     @task.virtualenv(
         requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
