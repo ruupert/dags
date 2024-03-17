@@ -8,13 +8,6 @@ from airflow.decorators import dag, task
 from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
 from typing import Dict, List
 
-import pandas as pd
-from influxdb_client import InfluxDBClient
-from influxdb_client.client.flux_table import FluxTable
-from influxdb_client.client.write.point import Point
-from influxdb_client.client.write_api import SYNCHRONOUS
-
-
 @dag(
     schedule="25 13 * * *",
     start_date=pendulum.datetime(2024, 3, 16, tz="UTC"),
@@ -33,9 +26,9 @@ def fingrid_el(fingrid_apikey:str):
         requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
     )
     def getDatasets():
-        import urllib3, json
+        import urllib, json
         import pandas as pd
-        urllib3.disable_warnings()
+        urllib.disable_warnings()
         url = f"https://data.fingrid.fi/api/datasets?page=1&pageSize=2000&orderBy=id"
         hdr = {
             'Cache-Control': 'no-cache',
@@ -68,15 +61,18 @@ def fingrid_el(fingrid_apikey:str):
         import influxdb_client, os, time
         from influxdb_client import InfluxDBClient, Point, WritePrecision
         from influxdb_client.client.write_api import SYNCHRONOUS
-        from datetime import datetime, timedelta, timezone, tzinfo
-        import urllib3, json
+        from datetime import datetime, timedelta
+        import pandas as pd
+
+        import urllib
+        import json
 
         import pandas as pd
 
-        urllib3.disable_warnings()
+        urllib.disable_warnings()
 
 
-        def getPage(id, start, end, page):
+        def getPage(id, start, end, page, fingrid_apikey):
             try:
                 url = f"https://data.fingrid.fi/api/datasets/{id}/data?startTime={start}&endTime={end}&format=json&page={page}&pageSize=8000&locale=en&sortBy=startTime&sortOrder=asc"
                 hdr = {
@@ -102,6 +98,7 @@ def fingrid_el(fingrid_apikey:str):
                                     data_frame_measurement_name=res['name'])
 
         t = datetime.now()
+        # start date should be the last inserted timeseries measurement and this would have to be forked having for each different starts
         start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
         end_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
 
@@ -109,12 +106,12 @@ def fingrid_el(fingrid_apikey:str):
             start = start_date.strftime("%Y-%m-%dT%H:%M:%S")
             end = end_date.strftime("%Y-%m-%dT%H:%M:%S")
             page = 1
-            res = getPage(dataset['id'], start, end, 1)
+            res = getPage(dataset['id'], start, end, 1, fingrid_apikey )
             insert(res, influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
             while res['lastPage'] > page:
                 time.sleep(10)
                 page = page + 1
-                res = getPage(dataset['id'], start, end, page)
+                res = getPage(dataset['id'], start, end, page, fingrid_apikey)
                 insert(res, influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
 
 
