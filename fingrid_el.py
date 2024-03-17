@@ -48,9 +48,9 @@ def fingrid_el():
         return res
 
     @task(task_id="influxdb_task")
-    def createBucket():
+    def createBucket(bucket:str):
         influxdb_hook = InfluxDBHook(conn_id="influxdb")
-        influxdb_hook.create_bucket("fingrid", "Bucket for fingrid timeseries", influxdb_hook.org_name)
+        influxdb_hook.create_bucket(bucket, "Bucket for fingrid timeseries", influxdb_hook.org_name)
             
 
     @task.virtualenv(
