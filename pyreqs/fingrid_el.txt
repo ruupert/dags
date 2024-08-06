@@ -1,4 +1,0 @@
-influxdb_client==1.41.0
-pandas==2.2.1
-urllib3==2.2.1
-requests

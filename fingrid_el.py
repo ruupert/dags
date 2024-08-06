@@ -1,13 +1,10 @@
 import datetime
 import pendulum
-from airflow.models import Variable
-from airflow.hooks.base import BaseHook
-from airflow.models import Connection
-from airflow.providers.influxdb.hooks.influxdb import InfluxDBHook
-from airflow.decorators import dag, task
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
-from typing import Dict, List
 
+from airflow.models import Variable
+from airflow.decorators import dag, task
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.hooks.base import BaseHook
 
 @dag(
     schedule="25 13 * * *",
@@ -20,104 +17,95 @@ from typing import Dict, List
     },
     tags=["electricity"],
 )
-
 def fingrid_el():
-
-    @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
+    create_fingrid_tables = PostgresOperator(
+        task_id="create_fingrid_tables",
+        postgres_conn_id="fingrid_ts",
+        sql="sql/fingrid_schema.sql",
     )
-    def getDatasets(fingrid_apikey):
-        import requests, json
-        url = f"https://data.fingrid.fi/api/datasets?page=1&pageSize=2000&orderBy=id"
+    @task.virtualenv(
+        requirements=['pandas', 'requests'], system_site_packages=False
+    )
+    def getDatasets(fingrid_apikey, pagesize, wait) -> list:
+        import time
+        import json
+        import requests
+        
+        nextPage = 1
+        result = []
         hdr = {
             'Cache-Control': 'no-cache',
             'x-api-key': f'{fingrid_apikey}',
         }
-        response = requests.get(url=url, headers=hdr)
-        datasets = json.loads(response.content)['data']
-        res = []
-        for dataset in datasets:
-            tmp = {
-                "id": dataset['id'],
-                "name": dataset['nameEn'],
-            }
-            res.append(tmp)
-        return res
-
-    @task(task_id="influxdb_task")
-    def createBucket(bucket, influxdb_token, influxdb_url, influxdb_org):
-        from influxdb_client import InfluxDBClient
-
-        with InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org, verify_ssl=False) as client:
-            try:
-                client.buckets_api().create_bucket(bucket_name=bucket, description="Bucket for fingrid timeseries", org=influxdb_org)
-            except:
-                pass
-
+        while nextPage != None:
+            url = f"https://data.fingrid.fi/api/datasets?page={nextPage}&pageSize={pagesize}&orderBy=id"
+            response = requests.get(url=url, headers=hdr)
+            pagedata = json.loads(response.content)
+            nextPage = pagedata['pagination']['nextPage']
+            for dataset in pagedata['data']:
+                tmp = {
+                    "id": dataset['id'],
+                    "name": dataset['nameEn'],
+                }
+                result.append(tmp)
+            time.sleep(wait)
+        return result
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/fingrid_el.txt '], system_site_packages=False
+        requirements=['pandas==1.5.3', 'Numpy==1.26.4', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==1.4.17'], system_site_packages=False
     )
-    def extract(datasets, fingrid_apikey:str, influxdb_token:str, influxdb_url:str, influxdb_org:str, bucket:str):
-
+    def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str):
         import time
-        from influxdb_client import InfluxDBClient
-        from influxdb_client.client.write_api import SYNCHRONOUS
-        from datetime import datetime, timedelta
-        import pandas as pd
         import requests
         import json
+        from datetime import timedelta, datetime
+        import psycopg2
+        import sqlalchemy
+        from sqlalchemy.dialects.postgresql import insert
+        from sqlalchemy.sql import text
         import pandas as pd
-
-        def getPage(id, start, end, page, fingrid_apikey):
-            try:
-                url = f"https://data.fingrid.fi/api/datasets/{id}/data?startTime={start}&endTime={end}&format=json&page={page}&pageSize=8000&locale=en&sortBy=startTime&sortOrder=asc"
-                hdr = {
-                    'Cache-Control': 'no-cache',
-                    'x-api-key': fingrid_apikey,
-                }
+        def insert_on_conflict_nothing(table, conn, keys, data_iter):
+            data = [dict(zip(keys, row)) for row in data_iter]
+            insert_statement = insert(table.table).values(data)
+            upsert_statement = insert_statement.on_conflict_do_nothing()
+            conn.execute(upsert_statement)
+        def getDatasetDf(id, start, end, apikey) -> pd.DataFrame:
+            nextPage = 1
+            res = pd.DataFrame()
+            hdr = {
+                'Cache-Control': 'no-cache',
+                'x-api-key': f'{apikey}',
+            }
+            while nextPage != None:
+                url = f"https://data.fingrid.fi/api/datasets/{id}/data?startTime={start}&endTime={end}&format=json&page={nextPage}&pageSize={pagesize}&locale=en&sortBy=startTime&sortOrder=asc"
                 response = requests.get(url=url, headers=hdr)
-                time.sleep(20)
-                return json.loads(response.content)
-            except Exception as e:
-                print(e)
-
-        def insert(res, measurement_name, influxdb_url, influxdb_token, influxdb_org, bucket):
-            data_frame = pd.DataFrame(data=res['data'])
-            data_frame.set_index('startTime', inplace=True)
-
-
-            with InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org, verify_ssl=False) as client:
-                with client.write_api() as write_api:
-                    write_api.write(bucket=bucket, record=data_frame,
-                                    data_frame_measurement_name=measurement_name)
-
+                pagedata = json.loads(response.content)
+                nextPage = pagedata['pagination']['nextPage']
+                res = pd.concat([res, pd.DataFrame(data=pagedata['data'])], ignore_index=True)
+                time.sleep(wait)
+            return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
         t = datetime.now()
-        # start date should be the last inserted timeseries measurement and this would have to be forked having for each different starts
-        start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
-        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
-
+        start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
+        end = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
+        engine = sqlalchemy.create_engine(url=dburi)
+        with engine.connect() as conn:
+            for dataset in datasets:
+                statement = text("""INSERT INTO fingrid_links (id, name) VALUES (:id, :name) ON CONFLICT (id) DO NOTHING;""")
+                conn.execute(statement, (dataset['id'], dataset['name']))
         for dataset in datasets:
-            start = start_date.strftime("%Y-%m-%dT%H:%M:%S")
-            end = end_date.strftime("%Y-%m-%dT%H:%M:%S")
-            page = 1
-            res = getPage(dataset['id'], start, end, 1, fingrid_apikey )
-            if len(res['data']) > 0:
-                insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
-                try:
-                    lastPage = res['lastPage']
-                except:
-                    lastPage = page
-                while lastPage > page:
-                    page = page + 1
-                    res = getPage(dataset['id'], dataset, start, end, page, fingrid_apikey)
-                    insert(res, dataset['name'], influxdb_url=influxdb_url, influxdb_token=influxdb_token, influxdb_org=influxdb_org, bucket=bucket)
-
-
-    get_datasets = getDatasets(fingrid_apikey=Variable.get("fingrid_apikey"))
-    run_influxdb_task = createBucket("fingrid", Variable.get("influxdb_token"), Variable.get("influxdb_url"), Variable.get("influxdb_org"))
-    extract_and_load = extract(get_datasets, Variable.get("fingrid_apikey"),Variable.get("influxdb_token"), Variable.get("influxdb_url"), Variable.get("influxdb_org"), "fingrid")
-
-    get_datasets >> run_influxdb_task >> extract_and_load
-
+            tmpdf = getDatasetDf(dataset['id'], start, end, fingrid_apikey)
+            tmpdf.to_sql(   name="fingrid_data", 
+                            con=engine,
+                            schema="public",
+                            if_exists="append",
+                            index=False,
+                            method=insert_on_conflict_nothing, 
+                            chunksize=1000)
+    dburi = BaseHook.get_connection("fingrid_ts").get_uri()
+    pagesize = 8000
+    wait = 20
+    apikey=Variable.get("fingrid_apikey")
+    get_datasets = getDatasets(fingrid_apikey=apikey, wait=wait, pagesize=pagesize)
+    extract_and_load = extract(datasets=get_datasets, fingrid_apikey=apikey, wait=wait, pagesize=pagesize, dburi=dburi)
+    create_fingrid_tables >> get_datasets >> extract_and_load
 
 fingrid_el()
