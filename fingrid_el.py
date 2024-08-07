@@ -24,7 +24,7 @@ def fingrid_el():
         sql="sql/fingrid_schema.sql",
     )
     @task.virtualenv(
-        requirements=['pandas', 'requests'], system_site_packages=False
+        requirements=['requests'], system_site_packages=False
     )
     def getDatasets(fingrid_apikey, pagesize, wait) -> list:
         import time
@@ -51,14 +51,13 @@ def fingrid_el():
             time.sleep(wait)
         return result
     @task.virtualenv(
-        requirements=['pandas==1.5.3', 'Numpy==1.26.4', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==1.4.17'], system_site_packages=False
+        requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=False
     )
     def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str):
         import time
         import requests
         import json
         from datetime import timedelta, datetime
-        import psycopg2
         import sqlalchemy
         from sqlalchemy.dialects.postgresql import insert
         from sqlalchemy.sql import text
@@ -86,11 +85,15 @@ def fingrid_el():
         t = datetime.now()
         start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
         end = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
-        engine = sqlalchemy.create_engine(url=dburi)
+        engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         with engine.connect() as conn:
             for dataset in datasets:
                 statement = text("""INSERT INTO fingrid_links (id, name) VALUES (:id, :name) ON CONFLICT (id) DO NOTHING;""")
-                conn.execute(statement, (dataset['id'], dataset['name']))
+                values = {
+                    "id": dataset['id'],
+                    "name": dataset['name'],
+                }
+                conn.execute(statement, (values))
         for dataset in datasets:
             tmpdf = getDatasetDf(dataset['id'], start, end, fingrid_apikey)
             tmpdf.to_sql(   name="fingrid_data", 
