@@ -10,6 +10,7 @@ from airflow.operators.python import PythonOperator, ExternalPythonOperator, Pyt
     schedule="25 13 * * *",
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
+    max_active_runs=1,
     default_args={
         "depends_on_past": False,
         "retries": 3,

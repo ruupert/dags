@@ -58,6 +58,7 @@ with DAG(
     dag_id="price_based_shutdown",
     schedule="55 * * * *",
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
+    max_active_runs=1,
     catchup=False,
     dagrun_timeout=datetime.timedelta(minutes=60),
     tags=["electricity"],

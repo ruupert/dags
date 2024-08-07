@@ -8,6 +8,7 @@ from airflow.operators.bash import BashOperator
     schedule="0 11 * * 5",
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=True,
+    max_active_runs=1,
     default_args={
         "depends_on_past": False,
         "retries": 3,

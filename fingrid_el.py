@@ -10,6 +10,7 @@ from airflow.hooks.base import BaseHook
     schedule="25 13 * * *",
     start_date=pendulum.datetime(2024, 3, 16, tz="UTC"),
     catchup=False,
+    max_active_runs=1,
     default_args={
         "depends_on_past": False,
         "retries": 3,
