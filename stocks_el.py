@@ -32,7 +32,9 @@ def stocks_el():
         import yfinance as yf
         import pandas
         import psycopg2
+        import datetime
         from sqlalchemy.dialects.postgresql import insert
+        from sqlalchemy.sql import text
         import sqlalchemy
 
         def insert_on_conflict_nothing(table, conn, keys, data_iter):
@@ -41,9 +43,22 @@ def stocks_el():
             upsert_statement = insert_statement.on_conflict_do_nothing()
             conn.execute(upsert_statement)
         
-        df = yf.download(tickers, group_by='Ticker', repair=True)
+        def findMinDate(records:list):
+            t = datetime.datetime.now()
+            for r in records:
+                if r[0] < t:
+                    t = r[0]
+            return t
+        
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         conn = engine.connect()
+        stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
+        vals = { "tickers": tuple(tickers) }
+        res = conn.execute(stmt, (vals)).fetchall()
+        if len(res) < len(tickers):
+            df = yf.download(tickers, period='max', group_by='Ticker', repair=True)
+        else:
+            df = yf.download(tickers, start=findMinDate(res), group_by='Ticker', repair=True)
         tmpdf = df.stack(level=0,future_stack=True).rename_axis(['Date', 'Ticker']).reset_index(level=1).dropna().reset_index()
         tmpdf = tmpdf.rename(columns={
             "Date": "time",
@@ -56,7 +71,6 @@ def stocks_el():
             "Repaired?": "repaired",
             "Ticker": "ticker",
         })
-        print(df.columns)
         tmpdf.to_sql('stock_data', 
             conn,schema='public',
             if_exists='append',
