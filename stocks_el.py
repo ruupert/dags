@@ -65,7 +65,22 @@ def stocks_el():
         from sqlalchemy.sql import text
         import sqlalchemy
         import json
+        import ssl
+        import os
 
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            pass
+        else:
+            ssl._create_default_https_context = _create_unverified_https_context
+
+        proxy = f"{random.choice(proxies)['proxy']}"
+        os.environ['http_proxy'] = proxy 
+        os.environ['HTTP_PROXY'] = proxy
+        os.environ['https_proxy'] = proxy
+        os.environ['HTTPS_PROXY'] = proxy
+        
         def insert_on_conflict_nothing(table, conn, keys, data_iter):
             data = [dict(zip(keys, row)) for row in data_iter]
             insert_statement = insert(table.table).values(data)
@@ -81,41 +96,30 @@ def stocks_el():
         
         def findBadTickers(tickers:list, result:list) -> list:
             return  list(set(tickers) - set(result))
-        
-        #LOL: ... because proxies might not werk or return shit, so try 3 times and give up or something..
-        # unsure if this catches the exceptions from children
-        def yfDlMax(tickers, period, group_by, repair, proxies):
-            tries = 0
-            while tries < 3:
-                try:
-                    df = yf.download(tickers=tickers, period=period, group_by=group_by, repair=repair, proxy=random.choice(proxies)['proxy'])
-                    break
-                except:
-                    tries += 1
-                finally:
-                    return df
-        def yfDlStart(tickers, start, group_by, repair, proxies):
-            tries = 0
-            while tries < 3:
-                try:
-                    df = yf.download(tickers=tickers, start=start, group_by=group_by, repair=repair, proxy=random.choice(proxies)['proxy'])
-                    break
-                except:
-                    tries += 1
-                finally:
-                    return df
+
+        def yfDlMax(tickers, period, group_by, repair):
+            print("Selected download method: PERIOD")
+            return yf.download(tickers=tickers, period=period, group_by=group_by, repair=repair)
+        def yfDlStart(tickers, start, group_by, repair):
+            print("Selected download method: START")
+            return yf.download(tickers=tickers, start=start, group_by=group_by, repair=repair)
 
         tickers = json.loads(tickers)
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
-        conn = engine.connect()
-        stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
-        vals = { "tickers": tuple(tickers) }
-        res = conn.execute(stmt, (vals)).fetchall()
-        if len(res) < len(tickers):
-            df = yfDlMax(tickers=tickers, period='max', group_by="Ticker", repair=True, proxies=proxies)
-        else:
-            df = yfDlStart(tickers=tickers, start=findMinDate(res), group_by='Ticker', repair=True, proxies=proxies)
+        with engine.connect() as conn:
+            stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
+            vals = { "tickers": tuple(tickers) }
+            res = conn.execute(stmt, (vals)).fetchall()
+            conn.close()
+            print(f"TICKER COUNT IN DB: {len(res)}, TICKERS IN {len(tickers)}")
+            if len(res) < len(tickers):
+                df = yfDlMax(tickers=tickers, period='max', group_by="Ticker", repair=True)
+            else:
+                df = yfDlStart(tickers=tickers, start=findMinDate(res), group_by='Ticker', repair=True)
+            print(f"GOT:\n{df}\n")
+        # todo: handle case with single ticker downloaded, different transform than with multiples.
         tmpdf = df.stack(level=0,future_stack=True).rename_axis(['Date', 'Ticker']).reset_index(level=1).dropna().reset_index()
+        print(f"TMPDF INITIAL TRANSFORM:\n{tmpdf}\n\nTMPDF COLUMNS:\n{tmpdf.columns}")
         diff = findBadTickers(tickers, list(tmpdf.get('Ticker').unique()))
         tmpdf = tmpdf.rename(columns={
             "Date": "time",
@@ -128,8 +132,9 @@ def stocks_el():
             "Repaired?": "repaired",
             "Ticker": "ticker",
         })
-        tmpdf.to_sql('stock_data', 
-            conn,schema='public',
+        print(f"TMPDF AFTER RENAMES:\n{tmpdf}\n\nTMPDF COLUMNS:\n{tmpdf.columns}")
+        tmpdf.to_sql(name='stock_data', 
+            con=engine,schema='public',
             if_exists='append',
             index=False,
             method=insert_on_conflict_nothing)
