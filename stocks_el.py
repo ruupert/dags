@@ -44,7 +44,7 @@ def stocks_el():
     @task.virtualenv(
             requirements=['requests'], system_site_packages=False
     )
-    def get_proxies() -> dict:
+    def get_proxies() -> list:
         import requests
         import json
         return json.loads(requests.get("https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&country=nl,de,fr,gb,ch,se,ca,it,sa,be,sk,no,gr,at,mx,lt,dk,ie,lv,pt,mt,cy,ee,gi,za,pl,es,rs,bg,cz,ro,si,fi,hr&protocol=http&proxy_format=protocolipport&format=json&anonymity=Anonymous,Elite,Transparent&timeout=6813").content)['proxies']
