@@ -16,14 +16,13 @@ def pull_rabbitsense_batch(ti=None):
     return ti.xcom_pull(key="return_value", task_ids="rabbitsense")
 
 @dag(
-    schedule="25 09 * * *",
+    schedule="@continuous",
     start_date=pendulum.datetime(2024, 8, 10, tz="UTC"),
     catchup=False,
     max_active_runs=1,
     default_args={
         "depends_on_past": False,
-        "retries": 3,
-        "retry_delay": datetime.timedelta(minutes=30),
+        "retries": 0,
     },
     tags=["finance"],
 )
