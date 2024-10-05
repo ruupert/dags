@@ -36,7 +36,10 @@ def fmi_fcast_el():
     )
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/fmi_reqs.txt '], system_site_packages=False
+        requirements=['Numpy==1.26.4',
+                    'rasterio==1.3.9',
+                    'fmiopendata'],
+        system_site_packages=False
     )
     def extract():
         import rasterio
