@@ -36,7 +36,14 @@ def electricity_el():
     )
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt '], system_site_packages=False
+        requirements=["pandas==1.5.3",
+                "Numpy==1.26.4",
+                "PyYAML==6.0",
+                "requests>=2.31.0",
+                "psycopg2-binary==2.9.6",
+                "pyroscope-io==0.8.5",
+                "git+https://github.com/ruupert/python-helen-electricity-usage"], 
+        system_site_packages=False
     )
     def extract(username, password, delivery_site):
         import datetime
@@ -65,7 +72,14 @@ def electricity_el():
         return df
 
     @task.virtualenv(
-        requirements=['-r /opt/airflow/dags/pyreqs/electricity_requirements.txt '], system_site_packages=False
+        requirements=["git+https://github.com/EnergieID/entsoe-py@3dadc657cb3ac3fa928515761d5a8f43683e6c7a",
+                    "pandas==2.2.0",
+                    "Numpy",
+                    "PyYAML==6.0",
+                    "requests>=2.31.0",
+                    "psycopg2-binary==2.9.6",
+                    "pyarrow"], 
+        system_site_packages=False
     )
     def get_price(apikey):
         from datetime import datetime, timedelta, timezone, tzinfo
