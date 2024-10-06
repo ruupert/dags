@@ -89,7 +89,7 @@ def electricity_el():
         from entsoe import EntsoePandasClient
         t = datetime.now()
         start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
-        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0) + timedelta(days=+1)
+        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0)
         client = EntsoePandasClient(api_key=apikey)
         start = pd.Timestamp(start_date, tz="Europe/Helsinki")
         end = pd.Timestamp(end_date, tz="Europe/Helsinki")
