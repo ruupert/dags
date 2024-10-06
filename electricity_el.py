@@ -72,7 +72,7 @@ def electricity_el():
         return df
 
     @task.virtualenv(
-        requirements=["git+https://github.com/EnergieID/entsoe-py@3dadc657cb3ac3fa928515761d5a8f43683e6c7a",
+        requirements=["git+https://github.com/ruupert/entsoe-py",
                     "pandas==2.2.0",
                     "Numpy",
                     "PyYAML==6.0",
@@ -89,7 +89,7 @@ def electricity_el():
         from entsoe import EntsoePandasClient
         t = datetime.now()
         start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
-        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+2)
+        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=59, second=0) + timedelta(days=+1)
         client = EntsoePandasClient(api_key=apikey)
         start = pd.Timestamp(start_date, tz="Europe/Helsinki")
         end = pd.Timestamp(end_date, tz="Europe/Helsinki")
