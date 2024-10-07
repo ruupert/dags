@@ -72,7 +72,7 @@ def electricity_el():
         return df
 
     @task.virtualenv(
-        requirements=["git+https://github.com/ruupert/entsoe-py",
+        requirements=["git+https://github.com/EnergieID/entsoe-py@4d6b401a376b6c8a9e1d2f523325a110f5af8abe",
                     "pandas==2.2.0",
                     "Numpy",
                     "PyYAML==6.0",
