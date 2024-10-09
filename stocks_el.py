@@ -20,6 +20,7 @@ def pull_rabbitsense_batch(ti=None):
     start_date=pendulum.datetime(2024, 8, 10, tz="UTC"),
     catchup=False,
     max_active_runs=1,
+    max_consecutive_failed_dag_runs=10,
     default_args={
         "depends_on_past": False,
         "retries": 0,
