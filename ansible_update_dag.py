@@ -14,7 +14,8 @@ from airflow.operators.bash import BashOperator
         "retries": 3,
         "retry_delay": datetime.timedelta(minutes=30),
     },
-    tags=["apt_upgrade"],
+    tags=["ansible"],
+    queue="ansible"
 )
 
 def ansible_update_dag():
