@@ -14,30 +14,33 @@ from airflow.operators.bash import BashOperator
         "retries": 3,
         "retry_delay": datetime.timedelta(minutes=30),
     },
-    tags=["ansible"],
-    queue="ansible"
+    tags=["ansible"]
 )
 
 def ansible_update_dag():
 
     setup_external_python = BashOperator(
         task_id="setup_external_python",
-        bash_command="python -m venv /opt/airflow/ansible_venv"
+        bash_command="python -m venv /opt/airflow/ansible_venv",
+        queue="ansible"
     )
     install_packages = BashOperator(
         task_id="install_packages",
-        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /opt/airflow/dags/pyreqs/airflow_ansible_requirements.txt"
+        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /opt/airflow/dags/pyreqs/airflow_ansible_requirements.txt",
+        queue="ansible"
     )
 
     install_ansilbe_packages = BashOperator(
         task_id="install_ansible_packages",
-        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /etc/ansible/requirements.txt"
+        bash_command="/opt/airflow/ansible_venv/bin/pip install -r /etc/ansible/requirements.txt",
+        queue="ansible"
     )
 
     @task.external_python(
             python="/opt/airflow/ansible_venv/bin/python3",
             expect_airflow=False,
             task_id="ansible_wakeonlan",
+            queue="ansible",
     )
     def ansible_wol():
         import json
@@ -63,6 +66,7 @@ def ansible_update_dag():
             python="/opt/airflow/ansible_venv/bin/python3",
             expect_airflow=False,
             task_id="ansible_apt_upgrade",
+            queue="ansible"
     )
     def ansible_apt_upgrade():
         import json
@@ -89,6 +93,7 @@ def ansible_update_dag():
             python="/opt/airflow/ansible_venv/bin/python3",
             expect_airflow=False,
             task_id="ansible_shutdown",
+            queue="ansible"
     )
     def ansible_shutdown():
         import json
