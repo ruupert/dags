@@ -73,10 +73,15 @@ for c in currencies:
             start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
             end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0)
 
-            df = ecbdata.get_series(f'EXR.D.{c}.EUR.SP00.A', start=start_date.strftime('%Y-%m'), end=end_date.strftime('%Y-%m'))
+            try:
+                df = ecbdata.get_series(f'EXR.D.{c}.EUR.SP00.A', start=start_date.strftime('%Y-%m'), end=end_date.strftime('%Y-%m'))
+            except:
+                return 0
+
             ddf = df[df.OBS_STATUS == 'A']
             ddf = ddf[['TIME_PERIOD','CURRENCY','OBS_VALUE']]
             ddf = ddf.rename(columns={"TIME_PERIOD": "time", "CURRENCY": "currency", "OBS_VALUE":"rate"})
+
             engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
 
             ddf.to_sql(     name="ecb_rate_eur", 
