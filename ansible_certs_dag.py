@@ -11,7 +11,7 @@ from airflow.operators.bash import BashOperator
     max_active_runs=1,
     default_args={
         "depends_on_past": False,
-        "retries": 0,
+        "retries": 0
     },
     tags=["ansible"]
 )
