@@ -6,7 +6,7 @@ from airflow.operators.bash import BashOperator
 
 @dag(
     schedule="30 4 * * *",
-    start_date=pendulum.datetime(2024, 10, 24, tz="UTC"),
+    start_date=pendulum.datetime(2023, 10, 23, tz="UTC"),
     catchup=False,
     max_active_runs=1,
     default_args={
@@ -53,7 +53,9 @@ def ansible_certs_dag():
             private_data_dir="/opt/airflow/ansible_venv/tmp",
             project_dir="/etc/ansible",
             playbook="site.yml",
-            extravars='act=cert',
+            extravars={
+                'act': 'cert'
+            },
             limit='!skipcerts',
             only_failed_event_data=True
         )
