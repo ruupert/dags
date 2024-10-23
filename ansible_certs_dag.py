@@ -38,8 +38,8 @@ def ansible_certs_dag():
     @task.external_python(
             python="/opt/airflow/ansible_venv/bin/python3",
             expect_airflow=False,
-            task_id="ansible_certs_task",
-            queue="ansible",
+            task_id="ansible_certstask",
+            queue="ansible"
     )
     def ansible_certs():
         import json
