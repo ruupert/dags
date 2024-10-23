@@ -81,7 +81,7 @@ def ansible_update_dag():
             project_dir="/etc/ansible",
             playbook="site.yml",
             tags='update',
-            limit='debian,freebsd',
+            limit='!skipupdate',
             only_failed_event_data=True
         )
         rc.prepare()
