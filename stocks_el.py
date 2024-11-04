@@ -5,36 +5,20 @@ from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.hooks.base import BaseHook
-from rabbitmq_provider.sensors.rabbitmq import RabbitMQSensor
-
-@task
-def pull_bad_tickers(ti=None):
-    return ti.xcom_pull(key="return_value", task_ids="rabbitsense")
-
-@task
-def pull_rabbitsense_batch(ti=None):
-    return ti.xcom_pull(key="return_value", task_ids="rabbitsense")
 
 @dag(
-    schedule="@continuous",
-    start_date=pendulum.datetime(2024, 8, 10, tz="UTC"),
+    schedule="25 13 * * *",
+    start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,
-    max_consecutive_failed_dag_runs=10,
     default_args={
         "depends_on_past": False,
-        "retries": 0,
+        "retries": 10,
+        "retry_delay": datetime.timedelta(minutes=10),
     },
     tags=["finance"],
 )
 def stocks_el():
-
-    rabbitmq_sensor = RabbitMQSensor(
-        task_id="rabbitsense",
-        queue_name="inbound",
-        rabbitmq_conn_id="rabbitmq",
-    )
-
     create_stocks_tables = PostgresOperator(
         task_id="create_stocks_tables",
         postgres_conn_id="stocks_ts",
@@ -104,7 +88,6 @@ def stocks_el():
             print("Selected download method: START")
             return yf.download(tickers=tickers, start=start, group_by=group_by, repair=repair)
 
-        tickers = json.loads(tickers)
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         with engine.connect() as conn:
             stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
@@ -116,6 +99,8 @@ def stocks_el():
                 df = yfDlMax(tickers=tickers, period='max', group_by="Ticker", repair=True)
             else:
                 df = yfDlStart(tickers=tickers, start=findMinDate(res), group_by='Ticker', repair=True)
+            if df.empty:
+                exit(1)
             print(f"GOT:\n{df}\n")
         # todo: handle case with single ticker downloaded, different transform than with multiples.
         tmpdf = df.stack(level=0,future_stack=True).rename_axis(['Date', 'Ticker']).reset_index(level=1).dropna().reset_index()
@@ -142,19 +127,11 @@ def stocks_el():
         print(f"bad ticker, figure skate via xcom removal: {diff}")
         return diff
 
-    @task.virtualenv(
-            requirements=['requests'], system_site_packages=False
-    )
-    def rabbitmq_push_removal_q(records:list):
-        print(records)
-
-    tickers = pull_rabbitsense_batch()
+    tickers = Variable.get("stocks")
     proxies = get_proxies()
     dburi = BaseHook.get_connection("stocks_ts").get_uri()
     fetch_data = getData(tickers=tickers, dburi=dburi, proxies=proxies)
-    badtickers = pull_bad_tickers()
-    handle_bad_tickers = rabbitmq_push_removal_q(badtickers)
-    rabbitmq_sensor >> [ tickers, proxies, create_stocks_tables ] >> fetch_data
-    fetch_data >> badtickers >> handle_bad_tickers
+    create_stocks_tables >> [ proxies >> fetch_data ]
+
 
 stocks_el()
