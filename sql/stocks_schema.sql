@@ -15,4 +15,6 @@ SELECT create_hypertable('stock_data', by_range('time'), if_not_exists => TRUE);
 -- alter table did not seem to have set if not exist
 -- ALTER TABLE stock_data SET ( timescaledb.compress, timescaledb.compress_orderby = 'time' );
 -- SELECT add_compression_policy('stock_data', INTERVAL '7 days', if_not_exists => true);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ticker_time on stock_data(ticker, time);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ticker_time ON stock_data(ticker, time);
+CREATE MATERIALIZED VIEW IF NOT EXISTS minmax AS
+        SELECT ticker, min(close), max(close) FROM stock_data GROUP BY ticker;

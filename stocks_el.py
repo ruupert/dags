@@ -14,7 +14,7 @@ from airflow.decorators import task_group
     max_active_runs=1,
     default_args={
         "depends_on_past": False,
-        "retries": 10,
+        "retries": 20,
         "retry_delay": datetime.timedelta(minutes=10),
     },
     tags=["finance"],
@@ -134,8 +134,16 @@ def stocks_el():
         fetch_data = getData(tickers=tickers, dburi=dburi, proxies=proxies)
         proxies >> fetch_data
     
+
+    refresh_materialized_view = PostgresOperator(
+        task_id="refresh_materialized_view",
+        postgres_conn_id="stocks_ts",
+        sql="refresh materialized view minmax;",
+    )
+
+
     tickers = Variable.get("stocks")
-    create_stocks_tables >> tg1(tickers)
+    create_stocks_tables >> tg1(tickers) >> refresh_materialized_view
 
 
 stocks_el()
