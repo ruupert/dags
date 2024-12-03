@@ -48,7 +48,7 @@ def fmi_fcast_el():
         from fmiopendata.wfs import download_stored_query, get_stored_queries, get_stored_query_descriptions
         loc_list=[]
         obs_list=[]
-        end_time = (dt.datetime.utcnow() + dt.timedelta(hours=40)).isoformat(timespec="seconds") + "Z"
+        end_time = (dt.datetime.utcnow() + dt.timedelta(hours=72)).isoformat(timespec="seconds") + "Z"
         start_time = (dt.datetime.utcnow() - dt.timedelta(hours=6)).isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("ecmwf::forecast::surface::cities::multipointcoverage",
                                     args=["bbox=21,60,35,75",
