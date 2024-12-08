@@ -5,19 +5,18 @@ from airflow.operators.bash import BashOperator
 from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.utils.dag_parsing_context import get_parsing_context
-from random import randrange
 
 current_dag_id = get_parsing_context().dag_id
 channels = json.loads(Variable.get('ytchannels'))
 download_dir = Variable.get('yt_download_dir')
-minutes= randrange(1,59)
-hour=randrange(1,23)
+minutes=5
+hour=19
 
 for channel in channels['channels']:
     dag_id = f"youtube_dl_{channel['name']}"
     if current_dag_id is not None and current_dag_id != dag_id:
         continue
-    minutes += 5
+    minutes += 65
     if minutes >= 60:
         minutes = minutes - 60
         hour += 1
@@ -37,7 +36,7 @@ for channel in channels['channels']:
 
         create_dir = BashOperator(
             task_id="create_download_dir",
-            bash_command="mkdir {download_dir}",
+            bash_command=f"mkdir -p {download_dir}/downloads; echo 'success'",
             queue="youtube"
         )
 
@@ -52,13 +51,20 @@ for channel in channels['channels']:
             ydl_opts = {
                 'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
                 'max_downloads': 2,
+                'lazy_playlist': True,
+                'cachedir': f'{download_dir}/cache',
+                "playlistend": 1,
+                'ratelimit': 500000,
                 'download_archive': f'{download_dir}/download_archive',
                 'proxy': proxy,
                 'break_on_existing': True,
-                'outtmpl': '%(title)s.%(ext)s'
+                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s.%(ext)s',
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([channel['url']])
+                try:
+                    ydl.download([channel['url']])
+                except yt_dlp.utils.ExistingVideoReached:
+                    return 0
 
         ytl = youtube_dl(channel, Variable.get('socksproxy'), download_dir)
         create_dir >> ytl
