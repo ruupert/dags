@@ -49,11 +49,11 @@ for channel in channels['channels']:
         def youtube_dl(channel, proxy, download_dir):
             import yt_dlp
             ydl_opts = {
-                'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
-                'max_downloads': 2,
                 'lazy_playlist': True,
                 'cachedir': f'{download_dir}/cache',
-                "playlistend": 1,
+                'playlistend': 5,
+                'sleep_interval': 60,
+                'max_sleep_interval': 300,
                 'ratelimit': 500000,
                 'download_archive': f'{download_dir}/download_archive',
                 'proxy': proxy,
