@@ -46,7 +46,7 @@ for channel in channels['channels']:
             queue="youtube",
             system_site_packages=False
         )
-        def youtube_dl(channel, proxy, download_dir):
+        def youtube_dl(channel, download_dir):
             import yt_dlp
             ydl_opts = {
                 'lazy_playlist': True,
@@ -56,7 +56,6 @@ for channel in channels['channels']:
                 'max_sleep_interval': 60,
                 'ratelimit': 500000,
                 'download_archive': f'{download_dir}/download_archive',
-                'proxy': proxy,
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s.%(ext)s',
             }
@@ -66,5 +65,5 @@ for channel in channels['channels']:
                 except yt_dlp.utils.ExistingVideoReached:
                     return 0
 
-        ytl = youtube_dl(channel, Variable.get('socksproxy'), download_dir)
+        ytl = youtube_dl(channel, download_dir)
         create_dir >> ytl
