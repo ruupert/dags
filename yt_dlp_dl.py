@@ -9,20 +9,14 @@ from airflow.utils.dag_parsing_context import get_parsing_context
 current_dag_id = get_parsing_context().dag_id
 channels = json.loads(Variable.get('ytchannels'))
 download_dir = Variable.get('yt_download_dir')
-minutes=5
-hour=19
 
 for channel in channels['channels']:
     dag_id = f"youtube_dl_{channel['name']}"
     if current_dag_id is not None and current_dag_id != dag_id:
         continue
-    minutes += 65
-    if minutes >= 60:
-        minutes = minutes - 60
-        hour += 1
 
     with DAG(
-        schedule=f"{minutes} {hour} * * {channel['day']}",
+        schedule=f"{channel['min']} {channel['hour']} * * {channel['day']}",
         start_date=pendulum.datetime(2024, 12, 7, tz="UTC"),
         catchup=False,
         dag_id=dag_id,
