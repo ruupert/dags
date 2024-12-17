@@ -42,6 +42,7 @@ for channel in channels['channels']:
         )
         def youtube_dl(channel, download_dir):
             import yt_dlp
+            import datetime
             ydl_opts = {
                 'lazy_playlist': True,
                 'cachedir': f'{download_dir}/cache',
@@ -51,7 +52,7 @@ for channel in channels['channels']:
                 'ratelimit': 500000,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
-                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s.%(ext)s',
+                'outtmpl': f'{download_dir}/downloads/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(playlist)s/%(title)s.%(ext)s',
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
