@@ -49,7 +49,7 @@ for channel in channels['channels']:
                 'playlistend': 5,
                 'sleep_interval': 30,
                 'max_sleep_interval': 60,
-                'ratelimit': 500000,
+                'ratelimit': 1200000,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
