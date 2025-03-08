@@ -9,7 +9,7 @@ from airflow.utils.dag_parsing_context import get_parsing_context
 current_dag_id = get_parsing_context().dag_id
 ansible_jobs = json.loads(Variable.get('ansible_jobs'))
 
-for ansible_job in ansible_jobs['channels']:
+for ansible_job in ansible_jobs['jobs']:
     dag_id = f"ansible_{ansible_job['name']}"
     if current_dag_id is not None and current_dag_id != dag_id:
         continue
