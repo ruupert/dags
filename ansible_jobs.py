@@ -50,7 +50,7 @@ for ansible_job in ansible_jobs['jobs']:
                 task_id="ansible_certstask",
                 queue="ansible"
         )
-        def ansible_certs():
+        def ansible_certs(extravars, limit, tags):
             import json
             import yaml
             import ansible_runner
@@ -62,14 +62,14 @@ for ansible_job in ansible_jobs['jobs']:
                 private_data_dir="/opt/airflow/ansible_venv/tmp",
                 project_dir="/etc/ansible",
                 playbook="site.yml",
-                extravars=ansible_job['extravars'],
-                limit=ansible_job['limit'],
-                tags=ansible_job['tags'],
+                extravars=extravars,
+                limit=limit,
+                tags=tags,
                 only_failed_event_data=True
             )
             rc.prepare()
             r = Runner(config=rc)
             r.run()
 
-        ansible_job_task = ansible_certs()
+        ansible_job_task = ansible_certs(ansible_job['extravars'], ansible_job['limit'], ansible_job['tags'])
         setup_external_python.as_setup() >> install_packages.as_setup() >> install_ansilbe_packages.as_setup() >> ansible_job_task
