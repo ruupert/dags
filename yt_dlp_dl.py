@@ -50,6 +50,7 @@ for channel in channels['channels']:
             import datetime
             dlcount = 0
             def dlcounter(filename):
+                global dlcount
                 dlcount += 1
             ydl_opts = {
                 'lazy_playlist': True,
