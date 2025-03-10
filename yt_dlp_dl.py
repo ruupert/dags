@@ -77,7 +77,7 @@ for channel in channels['channels']:
                     return { 'dlcount': dlcount, 'err': 2 }
                 except Exception:
                     return { 'dlcount': dlcount, 'err': 2 }
-                return { 'dlcount': dlcount, 'err': 0 }
+            return { 'dlcount': dlcount, 'err': 0 }
         
         @task.python(
             task_id='webhook_and_break',
