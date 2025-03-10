@@ -102,7 +102,7 @@ def stocks_el():
     )
 
     refresh_materialized_view_close = PostgresOperator(
-        task_id="refresh_materialized_view",
+        task_id="refresh_materialized_view_close",
         postgres_conn_id="stocks_ts",
         sql="refresh materialized view last_close;",
     )
