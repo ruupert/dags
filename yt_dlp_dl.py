@@ -6,12 +6,13 @@ from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.utils.dag_parsing_context import get_parsing_context
 from airflow.exceptions import AirflowFailException, AirflowRescheduleException
-from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookHook
 from airflow.operators.empty import EmptyOperator
 
 current_dag_id = get_parsing_context().dag_id
 channels = json.loads(Variable.get('ytchannels'))
 download_dir = Variable.get('yt_download_dir')
+yt_url = Variable.get('yt_url')
 
 for channel in channels['channels']:
     dag_id = f"youtube_dl_{channel['name']}"
@@ -41,7 +42,8 @@ for channel in channels['channels']:
             requirements=['yt-dlp'],
             task_id="youtube_dl",
             queue="youtube",
-            system_site_packages=False
+            system_site_packages=False,
+            provide_context=True
         )
         def youtube_dl(channel, download_dir):
             import yt_dlp
@@ -58,42 +60,38 @@ for channel in channels['channels']:
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
             }
-            dl_count = 0
+            dlcount = 0
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
                     ydl.download([channel['url']])
                     ydl._format_out()
-                    dl_count += 1
+                    dlcount += 1
                 except yt_dlp.utils.ExistingVideoReached:
-                    return { "dl_count": dl_count, "err": 1 }
+                    return { 'dlcount': dlcount, 'err': 0 }
                 except yt_dlp.utils.DownloadError as e:
                     if e.msg.__contains__('members'):
-                        return { "dl_count": dl_count, "err": 1 }
+                        return { 'dlcount': dlcount, 'err': 0 }
                     else:
-                        return { "dl_count": dl_count, "err": 3 }
+                        return { 'dlcount': dlcount, 'err': 3 }
                 except yt_dlp.utils.ExtractorError:
-                    return { "dl_count": dl_count, "err": 2 }
+                    return { 'dlcount': dlcount, 'err': 2 }
                 except Exception:
-                    return { "dl_count": dl_count, "err": 2 }
-                return { "dl_count": dl_count, "err": 0 }
+                    return { 'dlcount': dlcount, 'err': 2 }
+                return { 'dlcount': dlcount, 'err': 0 }
         
+        @task.python(
+            task_id='webhook_and_break',
+            queue="youtube",
+        )
+        def webhook_and_break(ytl, hook):
+            if ytl['dlcount'] > 0:
+                hook.send_text(f"{channel['name']}: {ytl['dlcount']} video(s) downloaded")  
+            if ytl['err'] == 3:            
+                raise AirflowRescheduleException
+            if ytl['err'] == 2:
+                raise AirflowFailException
+            return 0
+        hook = SlackWebhookHook(slack_webhook_conn_id="slack_webhook")  
         ytl = youtube_dl(channel, download_dir)
-        if ytl['err'] == 3:            
-            raise AirflowRescheduleException
-        if ytl['err'] == 2:
-            raise AirflowFailException
-        
-        if ytl['dl_count'] > 0:
-            slack_webhook_operator_text = SlackWebhookOperator(
-            task_id="slack_webhook_send_text",
-            slack_webhook_conn_id="slack_webhook",
-            message=(
-                f"{channel['name']}: {ytl['dl_count']} video(s) downloaded"
-                ),
-            )
-        else:
-            slack_webhook_operator_text = EmptyOperator(
-                task_id="slack_webhook_send_text"
-            )
-
-        create_dir >> ytl >> slack_webhook_operator_text
+        webhook_and_break_task = webhook_and_break(ytl, hook)
+        create_dir >> ytl >> webhook_and_break_task
