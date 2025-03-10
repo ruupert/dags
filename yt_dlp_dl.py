@@ -90,9 +90,9 @@ for channel in channels['channels']:
             task_id='webhook_and_break',
             queue="youtube",
         )
-        def webhook_and_break(ytl, hook):
+        def webhook_and_break(ytl, hook, chname):
             if ytl['dlcount'] > 0:
-                hook.send_text(f"{channel['name']}: {ytl['dlcount']} video(s) downloaded")  
+                hook.send_text(f"{chname}: {ytl['dlcount']} video(s) downloaded")  
             if ytl['err'] == 3:            
                 reschedule_date = datetime.now() + timedelta(minutes=int(random.uniform(120, 360)))
                 logging.info(f"Rescheduling for {reschedule_date}")
@@ -102,5 +102,5 @@ for channel in channels['channels']:
             return 0
         hook = SlackWebhookHook(slack_webhook_conn_id="slack_webhook")  
         ytl = youtube_dl(channel, download_dir)
-        webhook_and_break_task = webhook_and_break(ytl, hook)
+        webhook_and_break_task = webhook_and_break(ytl, hook, channel['name'])
         create_dir >> ytl >> webhook_and_break_task

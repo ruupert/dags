@@ -47,10 +47,10 @@ for ansible_job in ansible_jobs['jobs']:
         @task.external_python(
                 python="/opt/airflow/ansible_venv/bin/python3",
                 expect_airflow=False,
-                task_id="ansible_certstask",
+                task_id="ansible_job_exectask",
                 queue="ansible"
         )
-        def ansible_certs(extravars, limit, tags):
+        def ansible_job_exec(extravars, limit, tags):
             import json
             import yaml
             import ansible_runner
@@ -71,5 +71,5 @@ for ansible_job in ansible_jobs['jobs']:
             r = Runner(config=rc)
             r.run()
 
-        ansible_job_task = ansible_certs(ansible_job['extravars'], ansible_job['limit'], ansible_job['tags'])
+        ansible_job_task = ansible_job_exec(ansible_job['extravars'], ansible_job['limit'], ansible_job['tags'])
         setup_external_python.as_setup() >> install_packages.as_setup() >> install_ansilbe_packages.as_setup() >> ansible_job_task
