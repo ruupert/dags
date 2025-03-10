@@ -65,30 +65,30 @@ for channel in channels['channels']:
                     ydl._format_out()
                     dl_count += 1
                 except yt_dlp.utils.ExistingVideoReached:
-                    return (dl_count, 1)
+                    return { "dl_count": dl_count, "err": 1 }
                 except yt_dlp.utils.DownloadError as e:
                     if e.msg.__contains__('members'):
-                        return (dl_count,1)
+                        return { "dl_count": dl_count, "err": 1 }
                     else:
-                        return (dl_count,3)
+                        return { "dl_count": dl_count, "err": 3 }
                 except yt_dlp.utils.ExtractorError:
-                    return (dl_count,2)
+                    return { "dl_count": dl_count, "err": 2 }
                 except Exception:
-                    return (dl_count,2)
-                return (dl_count,0)
+                    return { "dl_count": dl_count, "err": 2 }
+                return { "dl_count": dl_count, "err": 0 }
         
-        dl_count, ytl = youtube_dl(channel, download_dir)
-        if ytl == 3:            
+        ytl = youtube_dl(channel, download_dir)
+        if ytl['err'] == 3:            
             raise AirflowRescheduleException
-        if ytl == 2:
+        if ytl['err'] == 2:
             raise AirflowFailException
         
-        if dl_count > 0:
+        if ytl['dl_count'] > 0:
             slack_webhook_operator_text = SlackWebhookOperator(
             task_id="slack_webhook_send_text",
             slack_webhook_conn_id="slack_webhook",
             message=(
-                f"{channel['name']}: {dl_count} video(s) downloaded"
+                f"{channel['name']}: {ytl['dl_count']} video(s) downloaded"
                 ),
             )
         else:
