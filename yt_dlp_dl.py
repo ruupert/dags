@@ -94,11 +94,11 @@ for channel in channels['channels']:
             if ytl['dlcount'] > 0:
                 hook.send_text(f"{channel['name']}: {ytl['dlcount']} video(s) downloaded")  
             if ytl['err'] == 3:            
-                raise AirflowRescheduleException
-            if ytl['err'] == 2:
                 reschedule_date = datetime.now() + timedelta(minutes=int(random.uniform(120, 360)))
                 logging.info(f"Rescheduling for {reschedule_date}")
                 raise AirflowRescheduleException(reschedule_date=reschedule_date)
+            if ytl['err'] == 2:
+                raise AirflowFailException
             return 0
         hook = SlackWebhookHook(slack_webhook_conn_id="slack_webhook")  
         ytl = youtube_dl(channel, download_dir)
