@@ -101,10 +101,16 @@ def stocks_el():
         sql="refresh materialized view minmax;",
     )
 
+    refresh_materialized_view_close = PostgresOperator(
+        task_id="refresh_materialized_view",
+        postgres_conn_id="stocks_ts",
+        sql="refresh materialized view last_close;",
+    )
+
     dburi = BaseHook.get_connection("stocks_ts").get_uri()
     tickers = Variable.get(key="stocks", deserialize_json=True)
     fetch_data = getData(tickers=tickers['tickers'], dburi=dburi)
-    create_stocks_tables >> fetch_data >> refresh_materialized_view
+    create_stocks_tables >> fetch_data >> refresh_materialized_view >> refresh_materialized_view_close
 
 
 stocks_el()
