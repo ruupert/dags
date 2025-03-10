@@ -48,24 +48,26 @@ for channel in channels['channels']:
         def youtube_dl(channel, download_dir):
             import yt_dlp
             import datetime
+            dlcount = 0
+            def dlcounter(filename):
+                dlcount += 1
             ydl_opts = {
                 'lazy_playlist': True,
                 'cachedir': f'{download_dir}/cache',
                 'playlistend': 5,
                 'sleep_interval': 30,
                 'max_sleep_interval': 60,
+                'post_hooks': [dlcounter],
                 'progress_with_newline': True,
                 'ratelimit': 1200000,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
             }
-            dlcount = 0
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
                     ydl.download([channel['url']])
                     ydl._format_out()
-                    dlcount += 1
                 except yt_dlp.utils.ExistingVideoReached:
                     return { 'dlcount': dlcount, 'err': 0 }
                 except yt_dlp.utils.DownloadError as e:
