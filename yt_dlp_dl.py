@@ -1,5 +1,8 @@
 import pendulum
 import json
+import logging
+import random
+from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.operators.bash import BashOperator
 from airflow.models.dag import DAG
@@ -48,6 +51,7 @@ for channel in channels['channels']:
         def youtube_dl(channel, download_dir):
             import yt_dlp
             import datetime
+            global dlcount
             dlcount = 0
             def dlcounter(filename):
                 global dlcount
@@ -92,7 +96,9 @@ for channel in channels['channels']:
             if ytl['err'] == 3:            
                 raise AirflowRescheduleException
             if ytl['err'] == 2:
-                raise AirflowFailException
+                reschedule_date = datetime.now() + timedelta(minutes=int(random.uniform(120, 360)))
+                logging.info(f"Rescheduling for {reschedule_date}")
+                raise AirflowRescheduleException(reschedule_date=reschedule_date)
             return 0
         hook = SlackWebhookHook(slack_webhook_conn_id="slack_webhook")  
         ytl = youtube_dl(channel, download_dir)
