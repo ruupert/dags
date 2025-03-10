@@ -52,41 +52,43 @@ for channel in channels['channels']:
                 'playlistend': 5,
                 'sleep_interval': 30,
                 'max_sleep_interval': 60,
+                'progress_with_newline': True,
                 'ratelimit': 1200000,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
             }
-            res = []
+            dl_count = 0
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
                     ydl.download([channel['url']])
                     ydl._format_out()
+                    dl_count += 1
                 except yt_dlp.utils.ExistingVideoReached:
-                    return 1
+                    return (dl_count, 1)
                 except yt_dlp.utils.DownloadError as e:
                     if e.msg.__contains__('members'):
-                        return 1
+                        return (dl_count,1)
                     else:
-                        return 3
+                        return (dl_count,3)
                 except yt_dlp.utils.ExtractorError:
-                    return 2
+                    return (dl_count,2)
                 except Exception:
-                    return 2
-                return 0
+                    return (dl_count,2)
+                return (dl_count,0)
         
-        ytl = youtube_dl(channel, download_dir)
+        dl_count, ytl = youtube_dl(channel, download_dir)
         if ytl == 3:            
             raise AirflowRescheduleException
         if ytl == 2:
             raise AirflowFailException
         
-        if ytl == 0:
+        if dl_count > 0:
             slack_webhook_operator_text = SlackWebhookOperator(
             task_id="slack_webhook_send_text",
             slack_webhook_conn_id="slack_webhook",
             message=(
-                f"{channel['name']} video(s) downloaded"
+                f"{channel['name']}: {dl_count} video(s) downloaded"
                 ),
             )
         else:
