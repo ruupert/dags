@@ -65,7 +65,7 @@ for channel in channels['channels']:
                 except yt_dlp.utils.ExistingVideoReached:
                     return 1
                 except yt_dlp.utils.DownloadError as e:
-                    if e.msg.__contains__('This video is available to this channel'):
+                    if e.msg.__contains__('members'):
                         return 1
                     else:
                         return 3
