@@ -73,6 +73,7 @@ for channel in channels['channels']:
                 try:
                     ydl.download([channel['url']])
                     ydl._format_out()
+                    return { 'dlcount': dlcount, 'err': 0 }
                 except yt_dlp.utils.ExistingVideoReached:
                     return { 'dlcount': dlcount, 'err': 0 }
                 except yt_dlp.utils.DownloadError as e:
