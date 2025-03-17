@@ -1,4 +1,3 @@
--- testing first inserting tickers as text, later as ints and link table strings.
 CREATE TABLE IF NOT EXISTS stock_data ( 
         time timestamp not null, 
         open FLOAT, 
@@ -12,12 +11,9 @@ CREATE TABLE IF NOT EXISTS stock_data (
 );
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 SELECT create_hypertable('stock_data', by_range('time'), if_not_exists => TRUE);
--- alter table did not seem to have set if not exist
--- ALTER TABLE stock_data SET ( timescaledb.compress, timescaledb.compress_orderby = 'time' );
--- SELECT add_compression_policy('stock_data', INTERVAL '7 days', if_not_exists => true);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ticker_time ON stock_data(ticker, time);
 CREATE MATERIALIZED VIEW IF NOT EXISTS minmax AS
         SELECT ticker, min(close), max(close) FROM stock_data GROUP BY ticker;
+-- https://wiki.postgresql.org/wiki/First/last_(aggregate)
 CREATE OR REPLACE FUNCTION public.first_agg (anyelement, anyelement)
   RETURNS anyelement
   LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS

@@ -67,9 +67,9 @@ def stocks_el():
             print(f"TICKERS: {tickers}")
             print(f"TICKER COUNT IN DB: {len(res)}, TICKERS IN {len(tickers)}")
             if len(res) < len(tickers):
-                df = yfDlMax(tickers=tickers, period='max', group_by="Ticker", repair=True)
+                df = yfDlMax(tickers=tickers, period='max', group_by="Ticker", repair=False)
             else:
-                df = yfDlStart(tickers=tickers, start=findMinDate(res), group_by='Ticker', repair=True)
+                df = yfDlStart(tickers=tickers, start=findMinDate(res), group_by='Ticker', repair=False)
             if df.empty:
                 exit(1)
             print(f"GOT:\n{df}\n")
