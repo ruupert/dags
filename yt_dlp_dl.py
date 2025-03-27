@@ -59,7 +59,7 @@ for channel in channels['channels']:
             ydl_opts = {
                 'lazy_playlist': True,
                 'cachedir': f'{download_dir}/cache',
-                'playlistend': 5,
+                'playlistend': 7,
                 'sleep_interval': 30,
                 'max_sleep_interval': 60,
                 'post_hooks': [dlcounter],
