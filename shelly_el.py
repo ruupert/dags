@@ -6,7 +6,7 @@ from rabbitmq_provider.sensors.rabbitmq import RabbitMQSensor
 from rabbitmq_provider.operators.rabbitmq import RabbitMQHook
 
 @dag(
-    schedule="* * * * *",
+    schedule="*/5 * * * *",
     start_date=pendulum.datetime(2025, 2, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,
