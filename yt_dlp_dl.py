@@ -45,8 +45,7 @@ for channel in channels['channels']:
             requirements=['yt-dlp'],
             task_id="youtube_dl",
             queue="youtube",
-            system_site_packages=False,
-            provide_context=True
+            system_site_packages=False
         )
         def youtube_dl(channel, download_dir):
             import yt_dlp
