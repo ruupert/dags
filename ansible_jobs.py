@@ -50,7 +50,7 @@ for ansible_job in ansible_jobs['jobs']:
                 task_id="ansible_job_exectask",
                 queue="ansible"
         )
-        def ansible_job_exec(extravars, limit, tags):
+        def ansible_job_exec(extravars, limit, tags, skip):
             import json
             import yaml
             import ansible_runner
@@ -65,11 +65,12 @@ for ansible_job in ansible_jobs['jobs']:
                 extravars=extravars,
                 limit=limit,
                 tags=tags,
+                skip_tags=skip,
                 only_failed_event_data=True
             )
             rc.prepare()
             r = Runner(config=rc)
             r.run()
 
-        ansible_job_task = ansible_job_exec(ansible_job['extravars'], ansible_job['limit'], ansible_job['tags'])
+        ansible_job_task = ansible_job_exec(ansible_job['extravars'], ansible_job['limit'], ansible_job['tags'], ansible_job['skip'])
         setup_external_python.as_setup() >> install_packages.as_setup() >> install_ansilbe_packages.as_setup() >> ansible_job_task
