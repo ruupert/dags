@@ -4,8 +4,8 @@ from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 from airflow.hooks.base import BaseHook
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.dag_parsing_context import get_parsing_context
@@ -46,10 +46,19 @@ for c in currencies:
             conn.commit()
 
         end = EmptyOperator(task_id="end")
-        create_ecb_tables = PostgresOperator(
+        create_ecb_tables = SQLExecuteQueryOperator(
             task_id="create_ecb_rates_table",
-            postgres_conn_id="stocks_ts",
-            sql="sql/ecb_rates_schema.sql",
+            conn_id="stocks_ts",
+            sql="""
+                CREATE TABLE IF NOT EXISTS ecb_rate_eur ( 
+                        time timestamp not null, 
+                        currency text, 
+                        rate FLOAT 
+                );
+                CREATE EXTENSION IF NOT EXISTS timescaledb;
+                SELECT create_hypertable('ecb_rate_eur', by_range('time'), if_not_exists => TRUE);
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_ecb_eur_time_curr on ecb_rate_eur(currency, time);
+            """,
         )
         @task.virtualenv(
             requirements=['ecbdata', 'pandas==2.2.0', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'],

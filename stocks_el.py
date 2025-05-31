@@ -3,7 +3,7 @@ import pendulum
 
 from airflow.models import Variable
 from airflow.decorators import dag, task
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.hooks.base import BaseHook
 
 @dag(
@@ -19,10 +19,46 @@ from airflow.hooks.base import BaseHook
     tags=["finance"],
 )
 def stocks_el():
-    create_stocks_tables = PostgresOperator(
+    create_stocks_tables = SQLExecuteQueryOperator(
         task_id="create_stocks_tables",
-        postgres_conn_id="stocks_ts",
-        sql="sql/stocks_schema.sql",
+        conn_id="stocks_ts",
+        sql="""
+            CREATE TABLE IF NOT EXISTS stock_data ( 
+                    time timestamp not null, 
+                    open FLOAT, 
+                    high FLOAT, 
+                    low FLOAT, 
+                    close FLOAT, 
+                    adjclose FLOAT,
+                    repaired boolean,
+                    volume FLOAT, 
+                    ticker TEXT 
+            );
+            CREATE EXTENSION IF NOT EXISTS timescaledb;
+            SELECT create_hypertable('stock_data', by_range('time'), if_not_exists => TRUE);
+            CREATE MATERIALIZED VIEW IF NOT EXISTS minmax AS
+                    SELECT ticker, min(close), max(close) FROM stock_data GROUP BY ticker;
+            CREATE OR REPLACE FUNCTION public.first_agg (anyelement, anyelement)
+            RETURNS anyelement
+            LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS
+            'SELECT $1';
+            CREATE OR REPLACE AGGREGATE public.first (anyelement) (
+            SFUNC    = public.first_agg
+            , STYPE    = anyelement
+            , PARALLEL = safe
+            );
+            CREATE OR REPLACE FUNCTION public.last_agg (anyelement, anyelement)
+            RETURNS anyelement
+            LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE AS
+            'SELECT $2';
+            CREATE OR REPLACE AGGREGATE public.last (anyelement) (
+            SFUNC    = public.last_agg
+            , STYPE    = anyelement
+            , PARALLEL = safe
+            );
+            CREATE MATERIALIZED VIEW IF NOT EXISTS last_close AS
+                    select ticker, last(close) from stock_data group by ticker;
+        """,
     )
 
     @task.virtualenv(
@@ -95,15 +131,15 @@ def stocks_el():
             method=insert_on_conflict_nothing)
         conn.close()
 
-    refresh_materialized_view = PostgresOperator(
+    refresh_materialized_view = SQLExecuteQueryOperator(
         task_id="refresh_materialized_view",
-        postgres_conn_id="stocks_ts",
+        conn_id="stocks_ts",
         sql="refresh materialized view minmax;",
     )
 
-    refresh_materialized_view_close = PostgresOperator(
+    refresh_materialized_view_close = SQLExecuteQueryOperator(
         task_id="refresh_materialized_view_close",
-        postgres_conn_id="stocks_ts",
+        conn_id="stocks_ts",
         sql="refresh materialized view last_close;",
     )
 

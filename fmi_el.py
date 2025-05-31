@@ -3,8 +3,8 @@ import pendulum
 from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 
 @dag(
     schedule="0 */6 * * *",
@@ -29,10 +29,39 @@ def fmi_el():
         cur.execute(query, datatuple)
         conn.commit()
 
-    create_electricity_tables = PostgresOperator(
+    create_electricity_tables = SQLExecuteQueryOperator(
         task_id="create_electricity_tables",
-        postgres_conn_id="weather",
-        sql="sql/fmi_schema.sql",
+        conn_id="weather",
+        sql="""
+            CREATE TABLE IF NOT EXISTS loc (
+                                        loc_id INT,
+                                        name TEXT,
+                                        latitude REAL,
+                                        longitude REAL,
+                                        PRIMARY KEY(loc_id));
+            CREATE TABLE IF NOT EXISTS obs (
+                                        id INT GENERATED ALWAYS AS IDENTITY,
+                                        loc_id INT,
+                                        date timestamp NOT NULL,
+                                        temp_c REAL,
+                                        wind_speed_ms REAL,
+                                        wind_gust_ms REAL,
+                                        wind_direction_deg REAL,
+                                        humidity REAL,
+                                        dew_point_temp_c REAL,
+                                        precipitation_mm REAL,
+                                        precipitation_mmh REAL,
+                                        snow_depth_cm REAL,
+                                        pressure_hpa REAL,
+                                        horiz_vis_m REAL,
+                                        cloud_amount REAL,
+                                        present_weather REAL,
+                                        CONSTRAINT fk_loc
+                                            FOREIGN KEY(loc_id)
+                                                REFERENCES loc(loc_id));
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_name ON loc (name);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_date ON obs (loc_id, date);
+        """,
     )
 
     @task.virtualenv(

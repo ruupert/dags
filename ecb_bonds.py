@@ -4,7 +4,7 @@ from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.hooks.base import BaseHook
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.dag_parsing_context import get_parsing_context
@@ -48,10 +48,19 @@ for b in bonds:
             conn.commit()
 
         end = EmptyOperator(task_id="end")
-        create_ecb_tables = PostgresOperator(
+        create_ecb_tables = SQLExecuteQueryOperator(
             task_id="create_ecb_bonds_table",
-            postgres_conn_id="stocks_ts",
-            sql="sql/ecb_bonds_schema.sql",
+            conn_id="stocks_ts",
+            sql="""
+                CREATE TABLE IF NOT EXISTS ecb_bonds ( 
+                        time timestamp not null, 
+                        bond text, 
+                        yield FLOAT 
+                );
+                CREATE EXTENSION IF NOT EXISTS timescaledb;
+                SELECT create_hypertable('ecb_bonds', by_range('time'), if_not_exists => TRUE);
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_ecb_time_bond on ecb_bonds(bond, time);
+            """,
         )
         @task.virtualenv(
             requirements=['ecbdata', 'pandas==2.2.0', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'],

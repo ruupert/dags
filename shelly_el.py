@@ -4,6 +4,7 @@ from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from rabbitmq_provider.sensors.rabbitmq import RabbitMQSensor
 from rabbitmq_provider.operators.rabbitmq import RabbitMQHook
+# from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 @dag(
     schedule="* * * * *",
@@ -31,11 +32,25 @@ def shelly_el():
         rabbitmq_conn_id="rmq_shelly"
     )
 
-    #create_shelly_tables = PostgresOperator(
-    #    task_id="create_shelly_tables",
-    #    postgres_conn_id="shelly",
-    #    sql="sql/shelly_metrics_schema.sql",
-    #)
+#    create_shelly_tables = SQLExecuteQueryOperator(
+#        task_id="create_shelly_tables",
+#        conn_id="shelly",
+#        sql="""
+#            CREATE TABLE IF NOT EXISTS shelly_powers ( 
+#                    time timestamptz not null,
+#                    name TEXT,
+#                    output boolean, 
+#                    apower float,
+#                    voltage float,
+#                    freq float,
+#                    current float,
+#                    temperature float
+#            );
+#            CREATE EXTENSION IF NOT EXISTS timescaledb;
+#            SELECT create_hypertable('shelly_powers', by_range('time'), if_not_exists => TRUE);
+#            CREATE UNIQUE INDEX IF NOT EXISTS idx_name_time ON shelly_powers(name, time);
+#        """,
+#    )
 
     @task.python(
         task_id="nop"

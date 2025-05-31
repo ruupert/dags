@@ -3,7 +3,7 @@ import pendulum
 
 from airflow.models import Variable
 from airflow.decorators import dag, task
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.hooks.base import BaseHook
 
 @dag(
@@ -19,10 +19,18 @@ from airflow.hooks.base import BaseHook
     tags=["electricity"],
 )
 def fingrid_el():
-    create_fingrid_tables = PostgresOperator(
+    create_fingrid_tables = SQLExecuteQueryOperator(
         task_id="create_fingrid_tables",
-        postgres_conn_id="fingrid_ts",
-        sql="sql/fingrid_schema.sql",
+        conn_id="fingrid_ts",
+        sql="""
+            CREATE TABLE IF NOT EXISTS fingrid_links (id BIGSERIAL PRIMARY KEY, name text);
+            CREATE TABLE IF NOT EXISTS fingrid_links (id INTEGER, name text);
+            CREATE TABLE IF NOT EXISTS fingrid_data (time TIMESTAMP not null, dataset_id INTEGER, value FLOAT);
+            CREATE EXTENSION IF NOT EXISTS timescaledb;
+            SELECT create_hypertable('fingrid_data', by_range('time'), if_not_exists => TRUE);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_fingrid_links_id ON fingrid_links (id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_fingrid_data_time_dataset_id ON fingrid_data (time, dataset_id);
+        """,
     )
     @task.virtualenv(
         requirements=['requests'], system_site_packages=False

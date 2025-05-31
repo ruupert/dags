@@ -3,8 +3,8 @@ import pendulum
 from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 
 @dag(
     schedule="0 */6 * * *",
@@ -29,10 +29,33 @@ def fmi_fcast_el():
         cur.execute(query, datatuple)
         conn.commit()
 
-    create_electricity_tables = PostgresOperator(
+    create_electricity_tables = SQLExecuteQueryOperator(
         task_id="create_electricity_tables",
-        postgres_conn_id="weather",
-        sql="sql/fmi_schema.sql",
+        conn_id="weather",
+        sql="""
+            CREATE TABLE IF NOT EXISTS fcast_loc (
+                                        fcast_loc_id INTEGER,
+                                        name TEXT,
+                                        latitude REAL,
+                                        longitude REAL,
+                                        PRIMARY KEY(fcast_loc_id));
+            CREATE TABLE IF NOT EXISTS fcast (
+                                        id INT GENERATED ALWAYS AS IDENTITY,
+                                        fcast_loc_id INT,
+                                        date timestamp NOT NULL,
+                                        temp REAL NOT NULL,
+                                        hpa REAL NOT NULL,
+                                        humidity REAL NOT NULL,
+                                        geo_potential_h REAL NOT NULL,
+                                        u_component_wind REAL NOT NULL,
+                                        v_component_wind REAL NOT NULL,
+                                        rain_mm_hr REAL NOT NULL,
+                                        CONSTRAINT fk_fcast_loc
+                                            FOREIGN KEY(fcast_loc_id)
+                                                REFERENCES fcast_loc(fcast_loc_id)); 
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_fcast_loc_name ON fcast_loc (name);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_fcast_date ON fcast (fcast_loc_id, date);
+        """,
     )
 
     @task.virtualenv(

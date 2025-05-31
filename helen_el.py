@@ -3,8 +3,8 @@ import pendulum
 from airflow.models import Variable
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator, is_venv_installed
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 
 @dag(
     schedule="5 */8 * * *",
@@ -29,12 +29,16 @@ def helen_el():
         conn.commit()
 
 
-    create_electricity_tables = PostgresOperator(
+    create_electricity_tables = SQLExecuteQueryOperator(
         task_id="create_electricity_tables",
-        postgres_conn_id="electricity",
-        sql="sql/electricity_schema.sql",
+        conn_id="electricity",
+        sql="""
+            CREATE TABLE IF NOT EXISTS price (date timestamp NOT NULL, val REAL NOT NULL);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_price_date ON price (date);
+            CREATE TABLE IF NOT EXISTS consumption (date timestamp NOT NULL, val REAL NOT NULL);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_consumption_date ON consumption (date);
+        """,
     )
-
     @task.virtualenv(
         requirements=["pandas==1.5.3",
                 "Numpy==1.26.4",
