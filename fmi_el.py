@@ -78,7 +78,7 @@ def fmi_el():
         loc_list=[]
         obs_list=[]
         end_time = dt.datetime.utcnow() - dt.timedelta(hours=3)
-        start_time = end_time - dt.timedelta(hours=24)
+        start_time = end_time - dt.timedelta(hours=72)
         start_time = start_time.isoformat(timespec="seconds") + "Z"
         end_time = end_time.isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("fmi::observations::weather::multipointcoverage",
