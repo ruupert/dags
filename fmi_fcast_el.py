@@ -43,13 +43,13 @@ def fmi_fcast_el():
                                         id INT GENERATED ALWAYS AS IDENTITY,
                                         fcast_loc_id INT,
                                         date timestamp NOT NULL,
-                                        temp REAL NOT NULL,
-                                        hpa REAL NOT NULL,
-                                        humidity REAL NOT NULL,
-                                        geo_potential_h REAL NOT NULL,
-                                        u_component_wind REAL NOT NULL,
-                                        v_component_wind REAL NOT NULL,
-                                        rain_mm_hr REAL NOT NULL,
+                                        temp REAL,
+                                        hpa REAL,
+                                        humidity REAL,
+                                        geo_potential_h REAL,
+                                        u_component_wind REAL,
+                                        v_component_wind REAL,
+                                        rain_mm_hr REAL,
                                         CONSTRAINT fk_fcast_loc
                                             FOREIGN KEY(fcast_loc_id)
                                                 REFERENCES fcast_loc(fcast_loc_id)); 
