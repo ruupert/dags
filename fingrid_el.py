@@ -59,12 +59,8 @@ def fingrid_el():
                 result.append(tmp)
             time.sleep(wait)
         return result
-    @task.virtualenv(
-        requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], 
-        system_site_packages=False,
-        soft_time_limit=7200,
-        time_limit=7200
-    )
+
+    @task.virtualenv(requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=False)
     def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str):
         import time
         import requests
