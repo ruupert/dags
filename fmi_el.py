@@ -117,7 +117,10 @@ def fmi_el():
     @task()
     def load_obs(tuples_lists, hook: PostgresHook):
         for row in tuples_lists['locs']:
-            execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
+            try:
+                execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
+            except Exception as e:
+                print(e)
         for row in tuples_lists['obs']:
             execute_query_with_conn_obj("""INSERT INTO obs (   loc_id,
                                                 date,
