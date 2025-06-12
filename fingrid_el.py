@@ -26,7 +26,7 @@ hour=1
 
 for dataset in datasets:
     ds_name = str(dataset['name'])
-    ds_stripped = ''.join(e for e in ds_name if e.isalnum())
+    ds_stripped = ''.join(e for e in ds_name if e.isalnum()).encode('ascii', 'ignore').decode('ascii')
     dag_id = f"fingrid_dataset_get_{ds_stripped}"
     if current_dag_id is not None and current_dag_id != dag_id:
         continue  # skip generation of non-selected DAG
