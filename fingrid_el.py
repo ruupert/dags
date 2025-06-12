@@ -89,9 +89,12 @@ for dataset in datasets:
                     url = f"https://data.fingrid.fi/api/datasets/{id}/data?startTime={start}&endTime={end}&format=json&page={nextPage}&pageSize={pagesize}&locale=en&sortBy=startTime&sortOrder=asc"
                     response = requests.get(url=url, headers=hdr)
                     pagedata = json.loads(response.content)
-                    nextPage = pagedata['pagination']['nextPage']
                     res = pd.concat([res, pd.DataFrame(data=pagedata['data'])], ignore_index=True)
-                    time.sleep(wait)
+                    try:
+                        nextPage = pagedata['pagination']['nextPage']
+                        time.sleep(wait)
+                    except Exception:
+                        nextPage = None
                 return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
             t = datetime.now()
             start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
