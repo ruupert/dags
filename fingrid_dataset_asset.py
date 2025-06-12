@@ -20,11 +20,14 @@ def fingrid_datasets_to_s3(self):
         url = f"https://data.fingrid.fi/api/datasets?page={nextPage}&pageSize={pagesize}&orderBy=id"
         response = requests.get(url=url, headers=hdr)
         pagedata = json.loads(response.content)
-        nextPage = pagedata['pagination']['nextPage']
         for dataset in pagedata['data']:
             tmp={ "id": dataset['id'], "name": dataset['nameEn']}
             sets.append(tmp)
-        time.sleep(wait)
+        try:
+            nextPage = pagedata['pagination']['nextPage']
+            time.sleep(wait)
+        except Exception:
+            nextPage = None
 
     s3 = S3Hook('assets', transfer_config_args={
         'use_threads': False
