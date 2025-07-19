@@ -41,7 +41,7 @@ def entsoe_el():
     )
 
     @task.virtualenv(
-        requirements=["git+https://github.com/EnergieID/entsoe-py@033dcb564beb97aa2252c3b772174478c31d70ee",
+        requirements=["entsoe-py",
                     "pandas==2.2.0",
                     "Numpy",
                     "PyYAML==6.0",
