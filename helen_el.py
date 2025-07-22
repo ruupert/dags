@@ -46,7 +46,7 @@ def helen_el():
                 "requests>=2.31.0",
                 "psycopg2-binary==2.9.6",
                 "pyroscope-io==0.8.5",
-                "git+https://github.com/ruupert/python-helen-electricity-usage"], 
+                "git+https://github.com/ruupert/python-helen-electricity-usage@master#egg=helen_electricity_usage"], 
         system_site_packages=False
     )
     def extract(username, password, delivery_site):
