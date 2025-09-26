@@ -42,7 +42,7 @@ def entsoe_el():
 
     @task.virtualenv(
         requirements=["entsoe-py==0.7.0",
-                    "pandas==2.2.0",
+                    "pandas==2.3.1",
                     "numpy==2.3.1",
                     "PyYAML==6.0",
                     "requests>=2.31.0",
