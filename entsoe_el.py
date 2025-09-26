@@ -41,13 +41,13 @@ def entsoe_el():
     )
 
     @task.virtualenv(
-        requirements=["entsoe-py",
+        requirements=["entsoe-py==0.7.0",
                     "pandas==2.2.0",
-                    "Numpy",
+                    "numpy==2.3.1",
                     "PyYAML==6.0",
                     "requests>=2.31.0",
                     "psycopg2-binary==2.9.6",
-                    "pyarrow"], 
+                    "pyarrow==21.0.0"], 
         system_site_packages=False
     )
     def get_price(apikey):
