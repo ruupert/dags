@@ -118,7 +118,7 @@ def fmi_el():
     @task()
     def load_obs(input, hook: PostgresHook):
         import json
-        tuples_list = json.loads(input)
+        tuples_lists = json.loads(input)
         for row in tuples_lists['locs']:
             try:
                 execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", tuple(row), hook)
