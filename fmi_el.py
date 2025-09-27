@@ -88,16 +88,16 @@ def fmi_el():
                                         "endtime=" + end_time,
                                         "timestep=60"])
         for key in obs.location_metadata.keys():
-            loc_list.append((obs.location_metadata[key]['fmisid'], 
+            loc_list.append([obs.location_metadata[key]['fmisid'], 
                             key,
                             obs.location_metadata[key]['latitude'],
-                            obs.location_metadata[key]['longitude']))
+                            obs.location_metadata[key]['longitude']])
         locs = {}
         for item in obs.location_metadata:
             locs.update({item : obs.location_metadata[item]['fmisid'] })
         for key in obs.data:
             for loc in locs.keys():
-                obs_list.append((
+                obs_list.append([
                             locs[loc],
                             key,
                             obs.data[key][loc]['Air temperature']['value'],
@@ -112,7 +112,7 @@ def fmi_el():
                             obs.data[key][loc]['Pressure (msl)']['value'],
                             obs.data[key][loc]['Horizontal visibility']['value'],
                             obs.data[key][loc]['Cloud amount']['value'],
-                            obs.data[key][loc]['Present weather (auto)']['value']))
+                            obs.data[key][loc]['Present weather (auto)']['value']])
         return json.dumps({'locs': loc_list, 'obs': obs_list })
 
     @task()
@@ -121,7 +121,7 @@ def fmi_el():
         tuples_list = json.loads(input)
         for row in tuples_lists['locs']:
             try:
-                execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
+                execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", tuple(row), hook)
             except Exception as e:
                 print(e)
         for row in tuples_lists['obs']:
@@ -140,7 +140,7 @@ def fmi_el():
                                                 horiz_vis_m,
                                                 cloud_amount,
                                                 present_weather)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (loc_id, date) DO NOTHING""", row, hook)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (loc_id, date) DO NOTHING""", tuple(row), hook)
 
     extract_data = extract()
     create_electricity_tables >> extract_data
