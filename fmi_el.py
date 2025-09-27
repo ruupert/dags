@@ -71,6 +71,7 @@ def fmi_el():
         system_site_packages=False
     )
     def extract():
+        import json
         import rasterio
         import fmiopendata
         import datetime as dt
@@ -112,10 +113,12 @@ def fmi_el():
                             obs.data[key][loc]['Horizontal visibility']['value'],
                             obs.data[key][loc]['Cloud amount']['value'],
                             obs.data[key][loc]['Present weather (auto)']['value']))
-        return {'locs': loc_list, 'obs': obs_list }
+        return json.dumps{'locs': loc_list, 'obs': obs_list }
 
     @task()
-    def load_obs(tuples_lists, hook: PostgresHook):
+    def load_obs(input, hook: PostgresHook):
+        import json
+        tuples_list = json.loads(input)
         for row in tuples_lists['locs']:
             try:
                 execute_query_with_conn_obj("""INSERT INTO loc (loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
