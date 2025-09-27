@@ -113,7 +113,7 @@ def fmi_el():
                             obs.data[key][loc]['Horizontal visibility']['value'],
                             obs.data[key][loc]['Cloud amount']['value'],
                             obs.data[key][loc]['Present weather (auto)']['value']])
-        return json.dumps({'locs': loc_list, 'obs': obs_list })
+        return json.dumps({'locs': loc_list, 'obs': obs_list }, default=str)
 
     @task()
     def load_obs(input, hook: PostgresHook):
