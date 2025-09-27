@@ -65,6 +65,7 @@ def fmi_fcast_el():
         system_site_packages=False
     )
     def extract():
+        import json
         import rasterio
         import fmiopendata
         import datetime as dt
@@ -79,16 +80,16 @@ def fmi_fcast_el():
                                         "endtime=" + end_time,                                
                                         "timestep=60"])
         for key in obs.location_metadata.keys():
-            loc_list.append((obs.location_metadata[key]['fmisid'], 
+            loc_list.append([obs.location_metadata[key]['fmisid'], 
                             key,
                             obs.location_metadata[key]['latitude'],
-                            obs.location_metadata[key]['longitude']))
+                            obs.location_metadata[key]['longitude']])
         locs = {}
         for item in obs.location_metadata:
             locs.update({item : obs.location_metadata[item]['fmisid'] })
         for key in obs.data:
             for loc in locs.keys():
-                obs_list.append((
+                obs_list.append([
                             locs[loc],
                             key,
                             obs.data[key][loc]['Air temperature']['value'],
@@ -97,13 +98,15 @@ def fmi_fcast_el():
                             obs.data[key][loc]['Geopotential height']['value'],
                             obs.data[key][loc]['U-component of wind vector']['value'],
                             obs.data[key][loc]['V-component of wind']['value'],
-                            obs.data[key][loc]['Precipitation amount 1 hour']['value']))
-        return {'locs': loc_list, 'obs': obs_list }
+                            obs.data[key][loc]['Precipitation amount 1 hour']['value']])
+        return json.dumps({'locs': loc_list, 'obs': obs_list }, default=str)
 
     @task()
-    def load_obs(tuples_lists, hook: PostgresHook):
+    def load_obs(input, hook: PostgresHook):
+        import json
+        tuples_lists = json.loads(input)
         for row in tuples_lists['locs']:
-            execute_query_with_conn_obj("""INSERT INTO fcast_loc (fcast_loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", row, hook)
+            execute_query_with_conn_obj("""INSERT INTO fcast_loc (fcast_loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", tuple(row), hook)
         for row in tuples_lists['obs']:
             execute_query_with_conn_obj("""INSERT INTO fcast (
                                     fcast_loc_id, 
@@ -122,7 +125,7 @@ def fmi_fcast_el():
                                     geo_potential_h = COALESCE(EXCLUDED.geo_potential_h,fcast.geo_potential_h),
                                     u_component_wind = COALESCE(EXCLUDED.u_component_wind, fcast.u_component_wind),
                                     v_component_wind = COALESCE(EXCLUDED.v_component_wind, fcast.v_component_wind),
-                                    rain_mm_hr = COALESCE(EXCLUDED.rain_mm_hr, fcast.rain_mm_hr);""", row, hook)
+                                    rain_mm_hr = COALESCE(EXCLUDED.rain_mm_hr, fcast.rain_mm_hr);""", tuple(row), hook)
 
     extract_data = extract()
     create_electricity_tables >> extract_data
