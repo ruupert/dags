@@ -73,7 +73,7 @@ def fingrid_el():
         def insert_on_conflict_nothing(table, conn, keys, data_iter):
             data = [dict(zip(keys, row)) for row in data_iter]
             insert_statement = insert(table.table).values(data)
-            upsert_statement = insert_statement.on_conflict_do_update()
+            upsert_statement = insert_statement.on_conflict_do_nothing()
             conn.execute(upsert_statement)
         def getDatasetDf(id, start, end, apikey) -> pd.DataFrame:
             nextPage = 1
