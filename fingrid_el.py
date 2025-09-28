@@ -73,7 +73,7 @@ def fingrid_el():
         def insert_on_conflict_nothing(table, conn, keys, data_iter):
             data = [dict(zip(keys, row)) for row in data_iter]
             insert_statement = insert(table.table).values(data)
-            upsert_statement = insert_statement.on_conflict_do_nothing()
+            upsert_statement = insert_statement.on_conflict_do_update()
             conn.execute(upsert_statement)
         def getDatasetDf(id, start, end, apikey) -> pd.DataFrame:
             nextPage = 1
@@ -91,7 +91,7 @@ def fingrid_el():
                 time.sleep(wait)
             return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
         t = datetime.now()
-        start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-2)
+        start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-3)
         end = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         with engine.connect() as conn:
@@ -102,8 +102,10 @@ def fingrid_el():
                     "name": dataset['name'],
                 }
                 conn.execute(statement, (values))
-        for dataset in datasets:
-            tmpdf = getDatasetDf(dataset['id'], start, end, fingrid_apikey)
+        # ids I am interested of are 
+        datasetids = [181, 188, 191, 192, 193, 247]
+        for datasetid in datasetids:
+            tmpdf = getDatasetDf(datasetid, start, end, fingrid_apikey)
             tmpdf.to_sql(   name="fingrid_data", 
                             con=engine,
                             schema="public",
