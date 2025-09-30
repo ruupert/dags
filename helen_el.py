@@ -69,7 +69,9 @@ def helen_el():
         data = helen.get_electricity(start_date, end_date)
         
         data = data['intervals']['electricity'][0]
-        idx = pandas.date_range(start=datetime.strptime( data['start'], "%Y-%m-%dT%H:%M:%SZ"), end=(datetime.strptime( data['stop'], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=-1)), freq='H')
+        hours = len(data['measurements'])-1
+        idx = pandas.date_range(start=datetime.strptime( data['start'], "%Y-%m-%dT%H:%M:%SZ"), end=(datetime.strptime( data['start'], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=hours)), freq='h')
+
         pa = pandas.array(data['measurements'])
 
         df = pandas.DataFrame(data=pa, index=idx)
