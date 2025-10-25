@@ -64,6 +64,7 @@ for channel in channels['channels']:
                 'post_hooks': [dlcounter],
                 'progress_with_newline': True,
                 'ratelimit': 2200000,
+                'writethumbnail': True,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
