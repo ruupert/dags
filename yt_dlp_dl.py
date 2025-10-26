@@ -58,32 +58,7 @@ for channel in channels['channels']:
             res  = []
             def dlhook(filename):
                 res.append(filename)
-            
-            ydl_opts = {
-              'lazy_playlist': True,
-              'playlistend': 2,
-              'sleep_interval': 5,
-              'max_sleep_interval': 20,
-              'progress_tih_newline': True,
-              'ratelimit': 2200000,
-              'writeinfojson': True,
-              'writethumbnail': "all",
-              'addchapters': True,
-              'download_archive': f'{download_dir}/download_archive',
-              'break_on_existing': True,
-              'post_hooks': [dlhook],
-              'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
-            }
-            
-            try:
-              ydl = yt_dlp.YoutubeDL(ydl_opts)
-              ydl.download(channel['url'])
-            except yt_dlp.utils.ExistingVideoReached:
-                pass
-            #except yt_dlp.utils.DownloadError:
-            #    pass
-            #except yt_dlp.utils.ExtractorError:
-                           
+
             def create_tvshow_nfo(path, channel, description, thumb):
                 with open(path, "w") as fh:
                     fh.writelines([
@@ -111,21 +86,47 @@ for channel in channels['channels']:
                         "</episodedetails>\n"
                     ])
             
-            for file in res:
-                dest_dir = os.path.dirname(file)
-                with open(file.replace(pathlib.Path(file).suffix, ".info.json"), "r") as fh:
-                    file_info = json.load(fh)
+            ydl_opts = {
+              'lazy_playlist': True,
+              'playlistend': 2,
+              'sleep_interval': 5,
+              'max_sleep_interval': 20,
+              'progress_tih_newline': True,
+              'ratelimit': 2200000,
+              'writeinfojson': True,
+              'writethumbnail': "all",
+              'addchapters': True,
+              'download_archive': f'{download_dir}/download_archive',
+              'break_on_existing': True,
+              'post_hooks': [dlhook],
+              'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
+            }
             
-                path = pathlib.Path(f"{dest_dir}/tvshow.nfo")
-                if not path.is_file():
-                    with open(f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.info.json") as tfh:
-                        tvshow_info = json.load(tfh)
-                        thumb = f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.jpg"
-                        shutil.copy(thumb, f"{dest_dir}/default.jpg")
-                        create_tvshow_nfo(path, tvshow_info['channel'], tvshow_info['description'], f"{dest_dir}/default.jpg")
-            
-                episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
-                create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date"'])
+            try:
+              ydl = yt_dlp.YoutubeDL(ydl_opts)
+              ydl.download(channel['url'])
+            except yt_dlp.utils.ExistingVideoReached:
+                pass
+            #except yt_dlp.utils.DownloadError:
+            #    pass
+            #except yt_dlp.utils.ExtractorError:
+            #    pass
+            finally:
+                for file in res:
+                    dest_dir = os.path.dirname(file)
+                    with open(file.replace(pathlib.Path(file).suffix, ".info.json"), "r") as fh:
+                        file_info = json.load(fh)
+                
+                    path = pathlib.Path(f"{dest_dir}/tvshow.nfo")
+                    if not path.is_file():
+                        with open(f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.info.json") as tfh:
+                            tvshow_info = json.load(tfh)
+                            thumb = f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.jpg"
+                            shutil.copy(thumb, f"{dest_dir}/default.jpg")
+                            create_tvshow_nfo(path, tvshow_info['channel'], tvshow_info['description'], f"{dest_dir}/default.jpg")
+                
+                    episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
+                    create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])
 
         
         ytl = youtube_dl(channel, download_dir)
