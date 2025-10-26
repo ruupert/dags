@@ -68,7 +68,7 @@ for channel in channels['channels']:
                 'writeinfojson': True,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
-                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(playlist)s/%(title)s-%(id)s.%(ext)s',
+                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s',
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
