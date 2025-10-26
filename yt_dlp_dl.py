@@ -48,61 +48,85 @@ for channel in channels['channels']:
             system_site_packages=False
         )
         def youtube_dl(channel, download_dir):
+            import pathlib
+            import json
             import yt_dlp
-            import datetime
-            global dlcount
-            dlcount = 0
-            def dlcounter(filename):
-                global dlcount
-                dlcount += 1
+            import os
+            import shutil
+            from datetime import datetime
+            
+            res  = []
+            def dlhook(filename):
+                res.append(filename)
+            
             ydl_opts = {
-                'lazy_playlist': True,
-                'cachedir': f'{download_dir}/cache',
-                'playlistend': 7,
-                'sleep_interval': 30,
-                'max_sleep_interval': 60,
-                'post_hooks': [dlcounter],
-                'progress_with_newline': True,
-                'ratelimit': 2200000,
-                'writethumbnail': True,
-                'writeinfojson': True,
-                'download_archive': f'{download_dir}/download_archive',
-                'break_on_existing': True,
-                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s',
+              'lazy_playlist': True,
+              'playlistend': 2,
+              'sleep_interval': 5,
+              'max_sleep_interval': 20,
+              'progress_tih_newline': True,
+              'ratelimit': 2200000,
+              'writeinfojson': True,
+              'writethumbnail': "all",
+              'addchapters': True,
+              'download_archive': f'{download_dir}/download_archive',
+              'break_on_existing': True,
+              'post_hooks': [dlhook],
+              'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
             }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                try:
-                    ydl.download([channel['url']])
-                    ydl._format_out()
-                    return { 'dlcount': dlcount, 'err': 0 }
-                except yt_dlp.utils.ExistingVideoReached:
-                    return { 'dlcount': dlcount, 'err': 0 }
-                except yt_dlp.utils.DownloadError as e:
-                    if e.msg.__contains__('members'):
-                        return { 'dlcount': dlcount, 'err': 0 }
-                    else:
-                        return { 'dlcount': dlcount, 'err': 3 }
-                except yt_dlp.utils.ExtractorError:
-                    return { 'dlcount': dlcount, 'err': 2 }
-                except Exception:
-                    return { 'dlcount': dlcount, 'err': 2 }
-            return { 'dlcount': dlcount, 'err': 0 }
+            
+            try:
+              ydl = yt_dlp.YoutubeDL(ydl_opts)
+              ydl.download(channel['url'])
+            except yt_dlp.utils.ExistingVideoReached:
+                pass
+            #except yt_dlp.utils.DownloadError:
+            #    pass
+            #except yt_dlp.utils.ExtractorError:
+                           
+            def create_tvshow_nfo(path, channel, description, thumb):
+                with open(path, "w") as fh:
+                    fh.writelines([
+                        "<?xml version='1.0' encoding='utf-8' standalone='yes'?>",
+                        "<tvshow>",
+                        f"<title>{channel}</title>",
+                        f"<plot>{description}</plot>",
+                        f"<art><thumb>{thumb}</thumb></art>",
+                        "</tvshow>\n"
+                    ])
+            
+            def create_episode_nfo(path, title, description, channel, upload_date):
+                utime = datetime.strptime(upload_date, "%Y%m%d")
+                season = datetime.strftime("%Y")
+                aired = datetime.strftime("%Y-%m-%d")
+                with open(path, "w") as fh:
+                    fh.writelines([
+                        "<?xml version='1.0' encoding='utf-8' standalone='yes'?>",
+                        "<episodedetails>",
+                        f"<title>{title}</title>",
+                        f"<plot>{description}</plot>",
+                        f"<showtitle>{channel}</showtitle>",
+                        f"<season>{season}</season>",
+                        f"<aired>{aired}</aired>",
+                        "</episodedetails>\n"
+                    ])
+            
+            for file in res:
+                dest_dir = os.path.dirname(file)
+                with open(file.replace(pathlib.Path(file).suffix, ".info.json"), "r") as fh:
+                    file_info = json.load(fh)
+            
+                path = pathlib.Path(f"{dest_dir}/tvshow.nfo")
+                if not path.is_file():
+                    with open(f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.info.json") as tfh:
+                        tvshow_info = json.load(tfh)
+                        thumb = f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.jpg"
+                        shutil.copy(thumb, f"{dest_dir}/default.jpg")
+                        create_tvshow_nfo(path, tvshow_info['channel'], tvshow_info['description'], f"{dest_dir}/default.jpg")
+            
+                episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
+                create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date"'])
+
         
-        @task.python(
-            task_id='webhook_and_break',
-            queue="youtube",
-        )
-        def webhook_and_break(ytl, hook, chname):
-            if ytl['dlcount'] > 0:
-                hook.send_text(f"{chname}: {ytl['dlcount']} video(s) downloaded")  
-            if ytl['err'] == 3:            
-                reschedule_date = datetime.now() + timedelta(minutes=int(random.uniform(120, 360)))
-                logging.info(f"Rescheduling for {reschedule_date}")
-                raise AirflowRescheduleException(reschedule_date=reschedule_date)
-            if ytl['err'] == 2:
-                raise AirflowFailException
-            return 0
-        hook = SlackWebhookHook(slack_webhook_conn_id="slack_webhook")  
         ytl = youtube_dl(channel, download_dir)
-        webhook_and_break_task = webhook_and_break(ytl, hook, channel['name'])
-        create_dir >> ytl >> webhook_and_break_task
+        create_dir >> ytl
