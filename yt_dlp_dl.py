@@ -65,9 +65,10 @@ for channel in channels['channels']:
                 'progress_with_newline': True,
                 'ratelimit': 2200000,
                 'writethumbnail': True,
+                'writeinfojson': True,
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
-                'outtmpl': f'{download_dir}/downloads/%(playlist)s/{datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")}_%(title)s.%(ext)s',
+                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(playlist)s/%(title)s-%(id)s.%(ext)s',
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 try:
