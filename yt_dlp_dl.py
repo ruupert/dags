@@ -72,8 +72,8 @@ for channel in channels['channels']:
             
             def create_episode_nfo(path, title, description, channel, upload_date):
                 utime = datetime.strptime(upload_date, "%Y%m%d")
-                season = datetime.strftime("%Y")
-                aired = datetime.strftime("%Y-%m-%d")
+                season = utime.strftime("%Y")
+                aired = utime.strftime("%Y-%m-%d")
                 with open(path, "w") as fh:
                     fh.writelines([
                         "<?xml version='1.0' encoding='utf-8' standalone='yes'?>",
