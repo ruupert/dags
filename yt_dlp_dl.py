@@ -88,9 +88,9 @@ for channel in channels['channels']:
             
             ydl_opts = {
               'lazy_playlist': True,
-              'playlistend': 2,
-              'sleep_interval': 5,
-              'max_sleep_interval': 20,
+              'playlistend': 7,
+              'sleep_interval': 30,
+              'max_sleep_interval': 60,
               'progress_tih_newline': True,
               'ratelimit': 2200000,
               'writeinfojson': True,
