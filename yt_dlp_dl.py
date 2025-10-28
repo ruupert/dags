@@ -94,7 +94,8 @@ for channel in channels['channels']:
               'progress_tih_newline': True,
               'ratelimit': 2200000,
               'writeinfojson': True,
-              'writethumbnail': "all",
+              'writethumbnail': 'all',
+              'ignoreerrors': 'only_download',
               'addchapters': True,
               'download_archive': f'{download_dir}/download_archive',
               'break_on_existing': True,
@@ -107,8 +108,6 @@ for channel in channels['channels']:
               ydl.download(channel['url'])
             except yt_dlp.utils.ExistingVideoReached:
                 pass
-            #except yt_dlp.utils.DownloadError:
-            #    pass
             #except yt_dlp.utils.ExtractorError:
             #    pass
             finally:
