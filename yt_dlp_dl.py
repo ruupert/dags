@@ -53,6 +53,7 @@ for channel in channels['channels']:
             import yt_dlp
             import os
             import shutil
+            import requests
             from datetime import datetime
             
             res  = []
@@ -85,7 +86,14 @@ for channel in channels['channels']:
                         f"<aired>{aired}</aired>",
                         "</episodedetails>\n"
                     ])
-            
+
+            def download_thumb(key, thumbs, dest):
+                for thumb in thumbs:
+                    if thumb['id'] == key:
+                        r = requests.get(thumb['url'])
+                        with open(dest, 'wb') as f:
+                            f.write(r.content)
+
             ydl_opts = {
                 'lazy_playlist': True,
                 'playlistend': 7,
@@ -123,10 +131,9 @@ for channel in channels['channels']:
                             thumb = f"{dest_dir}/{file_info['playlist']}-{file_info['playlist_id']}.jpg"
                             shutil.copy(thumb, f"{dest_dir}/default.jpg")
                             create_tvshow_nfo(path, tvshow_info['channel'], tvshow_info['description'], f"{dest_dir}/default.jpg")
-                
+                            download_thumb('banner_uncropped', tvshow_info['thumbnails'], f"{dest_dir}/backdrop.jpg")
                     episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
                     create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])
-
         
         ytl = youtube_dl(channel, download_dir)
         create_dir >> ytl
