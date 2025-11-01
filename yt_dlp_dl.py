@@ -42,7 +42,7 @@ for channel in channels['channels']:
         )
 
         @task.virtualenv(
-            requirements=['yt-dlp'],
+            requirements=['yt-dlp', 'requests'],
             task_id="youtube_dl",
             queue="youtube",
             system_site_packages=False
