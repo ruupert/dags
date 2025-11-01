@@ -23,7 +23,7 @@ for channel in channels['channels']:
         continue
 
     with DAG(
-        schedule=f"{channel['min']} {channel['hour']} * * {channel['day']}",
+        schedule=f"{channel['cron']}",
         start_date=pendulum.datetime(2024, 12, 7, tz="UTC"),
         catchup=False,
         dag_id=dag_id,
@@ -87,25 +87,25 @@ for channel in channels['channels']:
                     ])
             
             ydl_opts = {
-              'lazy_playlist': True,
-              'playlistend': 7,
-              'sleep_interval': 30,
-              'max_sleep_interval': 60,
-              'progress_tih_newline': True,
-              'ratelimit': 2200000,
-              'writeinfojson': True,
-              'writethumbnail': 'all',
-              'ignoreerrors': 'only_download',
-              'addchapters': True,
-              'download_archive': f'{download_dir}/download_archive',
-              'break_on_existing': True,
-              'post_hooks': [dlhook],
-              'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
+                'lazy_playlist': True,
+                'playlistend': 7,
+                'sleep_interval': 30,
+                'max_sleep_interval': 60,
+                'progress_tih_newline': True,
+                'ratelimit': 2200000,
+                'writeinfojson': True,
+                'writethumbnail': 'all',
+                'ignoreerrors': 'only_download',
+                'addchapters': True,
+                'download_archive': f'{download_dir}/download_archive',
+                'break_on_existing': True,
+                'post_hooks': [dlhook],
+                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
             }
             
             try:
-              ydl = yt_dlp.YoutubeDL(ydl_opts)
-              ydl.download(channel['url'])
+                ydl = yt_dlp.YoutubeDL(ydl_opts)
+                ydl.download(channel['url'])
             except yt_dlp.utils.ExistingVideoReached:
                 pass
             #except yt_dlp.utils.ExtractorError:
