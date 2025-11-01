@@ -132,8 +132,8 @@ for channel in channels['channels']:
                             shutil.copy(thumb, f"{dest_dir}/default.jpg")
                             create_tvshow_nfo(path, tvshow_info['channel'], tvshow_info['description'], f"{dest_dir}/default.jpg")
                             download_thumb('banner_uncropped', tvshow_info['thumbnails'], f"{dest_dir}/backdrop.jpg")
-                    episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
-                    create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])
-        
+                    if set(['channel', 'title', 'description', 'upload_date']).issubset(file_info.keys()):
+                        episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
+                        create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])    
         ytl = youtube_dl(channel, download_dir)
         create_dir >> ytl
