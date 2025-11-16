@@ -108,9 +108,9 @@ for channel in channels['channels']:
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'post_hooks': [dlhook],
-                'js_runtimes': [
-                    'deno:/usr/local/bin/deno'
-                ],
+                'js_runtimes': {
+                    'deno': {'path': '/usr/local/bin/deno'}
+                },
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
             }
             
