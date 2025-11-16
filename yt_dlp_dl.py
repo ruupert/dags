@@ -42,7 +42,7 @@ for channel in channels['channels']:
         )
 
         @task.virtualenv(
-            requirements=['yt-dlp', 'requests'],
+            requirements=['yt-dlp[default]', 'requests'],
             task_id="youtube_dl",
             queue="youtube",
             system_site_packages=False
@@ -108,6 +108,9 @@ for channel in channels['channels']:
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'post_hooks': [dlhook],
+                'js_runtimes': [
+                    'deno:/usr/local/bin/deno'
+                ],
                 'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
             }
             
