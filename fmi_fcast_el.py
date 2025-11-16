@@ -1,10 +1,10 @@
 import datetime
 import pendulum
 from airflow.models import Variable
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
+from airflow.providers.standard.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 
 @dag(
     schedule="0 */6 * * *",

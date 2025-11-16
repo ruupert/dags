@@ -2,9 +2,9 @@ import datetime
 import pendulum
 
 from airflow.models import Variable
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.hooks.base import BaseHook
+from airflow.sdk.bases.hook import BaseHook
 
 @dag(
     schedule="25 13 * * *",

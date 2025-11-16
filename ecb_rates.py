@@ -2,12 +2,12 @@ import datetime
 import pendulum
 from airflow.models.dag import DAG
 from airflow.models import Variable
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
-from airflow.hooks.base import BaseHook
-from airflow.operators.empty import EmptyOperator
+from airflow.providers.standard.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
+from airflow.sdk.bases.hook import BaseHook
+from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.utils.dag_parsing_context import get_parsing_context
 
 current_dag_id = get_parsing_context().dag_id
