@@ -3,14 +3,15 @@ import json
 import logging
 import random
 from datetime import datetime, timedelta
-from airflow.decorators import dag, task
-from airflow.operators.bash import BashOperator
+from airflow.sdk import dag, task
+from airflow.providers.standard.operators.bash import BashOperator
 from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.utils.dag_parsing_context import get_parsing_context
 from airflow.exceptions import AirflowFailException, AirflowRescheduleException
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookHook
-from airflow.operators.empty import EmptyOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
+
 
 current_dag_id = get_parsing_context().dag_id
 channels = json.loads(Variable.get('ytchannels'))
