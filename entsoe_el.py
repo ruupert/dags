@@ -48,7 +48,8 @@ def entsoe_el():
                     "requests>=2.31.0",
                     "psycopg2-binary==2.9.6",
                     "pyarrow==21.0.0"], 
-        system_site_packages=False
+        system_site_packages=False,
+        queue="cves"
     )
     def get_price(apikey):
         from datetime import datetime, timedelta, timezone, tzinfo
