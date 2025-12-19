@@ -1,13 +1,13 @@
 import pendulum
 import json
-from airflow.decorators import dag, task
-from airflow.operators.bash import BashOperator
+from airflow.sdk import task
+from airflow.providers.standard.operators.bash import BashOperator
 from airflow.models.dag import DAG
 from airflow.models import Variable
 from airflow.utils.dag_parsing_context import get_parsing_context
 
 current_dag_id = get_parsing_context().dag_id
-ansible_jobs = json.loads(Variable.get('ansible_jobs'))
+ansible_jobs = json.loads(Variable.get(key='ansible_jobs'), default_var=[])
 
 for ansible_job in ansible_jobs['jobs']:
     dag_id = f"ansible_{ansible_job['name']}"
