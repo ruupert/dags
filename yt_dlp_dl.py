@@ -12,7 +12,6 @@ from airflow.exceptions import AirflowFailException, AirflowRescheduleException
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookHook
 from airflow.providers.standard.operators.empty import EmptyOperator
 
-
 current_dag_id = get_parsing_context().dag_id
 channels = json.loads(Variable.get('ytchannels'))
 download_dir = Variable.get('yt_download_dir')
@@ -46,6 +45,9 @@ for channel in channels['channels']:
             requirements=['yt-dlp[default]', 'requests'],
             task_id="youtube_dl",
             queue="youtube",
+            retries=3,
+            retry_delay=timedelta(minutes=5),
+            retry_exponential_backoff=True,
             system_site_packages=False
         )
         def youtube_dl(channel, download_dir):
