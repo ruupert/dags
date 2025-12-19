@@ -1,17 +1,14 @@
 import pendulum
-from datetime import timedelta
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from rabbitmq_provider.sensors.rabbitmq import RabbitMQSensor
-from rabbitmq_provider.operators.rabbitmq import RabbitMQHook
-# from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from include.providers.rabbitmq_provider.sensors.rabbitmq import RabbitMQSensor
+from include.providers.rabbitmq_provider.operators.rabbitmq import RabbitMQHook
 
 @dag(
     schedule="*/5 * * * *",
     start_date=pendulum.datetime(2025, 2, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,
-    dagrun_timeout=timedelta(minutes=1),
     default_args={
         "depends_on_past": False,
         "retries": 0,
@@ -53,9 +50,9 @@ def shelly_el():
 #    )
 
     @task.python(
-        task_id="nop"
+        task_id="process_messages"
     )
-    def nopf():
+    def process_messages():
         import json
         import datetime
         try:
@@ -91,7 +88,7 @@ def shelly_el():
             target_fields=tf
         )
 
-    nop = nopf()
-    sense_rmq_shelly >> nop
+    process = process_messages()
+    sense_rmq_shelly >> process
 
 shelly_el()
