@@ -103,7 +103,7 @@ def fingrid_el():
                 }
                 conn.execute(statement, (values))
         # ids I am interested of are 
-        datasetids = [181, 188, 191, 192, 193, 247]
+        datasetids = [181, 188, 191, 192, 193, 245, 247, 268]
         for datasetid in datasetids:
             tmpdf = getDatasetDf(datasetid, start, end, fingrid_apikey)
             tmpdf.to_sql(   name="fingrid_data", 
