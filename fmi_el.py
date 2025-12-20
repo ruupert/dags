@@ -1,5 +1,6 @@
 import datetime
 import pendulum
+import logging
 from airflow.models import Variable
 from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -7,6 +8,8 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
 from airflow.models.dagrun import DagRun
 from airflow.models.taskinstance import TaskInstance
+
+logger = logging.getLogger(__name__)
 
 @dag(
     schedule="0 2 * * *",
@@ -29,8 +32,8 @@ def fmi_el():
         task_id="dag_context"
     )
     def get_dag_context(ti=None, dag_run=None, ds=None):
+        logger.info(f"backfill date: {ds}, run_type: {dag_run.run_type}")
         return {"run_type": dag_run.run_type, "ds": ds}
-    
 
     # expensive, but works as a hook, todo: psycopg2 extras batch load
     def execute_query_with_conn_obj(query, datatuple, hook):
