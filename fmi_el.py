@@ -91,8 +91,8 @@ def fmi_el():
         """ slow down when doing backfills """
         if context['run_type'] == "backfill":
             time.sleep(15)
-            start_date = dt.datetime.strptime(context['ds'], "%Y-%m-%d")
-            end_time = start_date + dt.timedelta(days=1)
+            start_time = dt.datetime.strptime(context['ds'], "%Y-%m-%d")
+            end_time = start_time + dt.timedelta(days=1)
         else:
             t = dt.datetime.now()
             start_time = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) - dt.timedelta(hours=72)
