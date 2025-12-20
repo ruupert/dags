@@ -104,6 +104,7 @@ def entsoe_el():
     context = get_dag_context()
     price_data = get_price(Variable.get("electricity_costs_entsoe_apikey"), context)
     context >> create_electricity_tables >> price_data
-    load_prices(price_data, hook)
+    load = load_prices(price_data, hook)
+    price_data >> load
 
 entsoe_el()

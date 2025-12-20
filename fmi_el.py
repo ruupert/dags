@@ -170,6 +170,6 @@ def fmi_el():
 
     extract_fmi_obs = extract(context)
     context >> create_electricity_tables >> extract_fmi_obs
-    load_obs(extract_data, hook)
+    load_obs(extract_fmi_obs, hook)
 
 fmi_el()
