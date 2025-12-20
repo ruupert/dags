@@ -5,9 +5,11 @@ from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
+from airflow.models.dagrun import DagRun
+from airflow.models.taskinstance import TaskInstance
 
 @dag(
-    schedule="0 */6 * * *",
+    schedule="0 2 * * *",
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,
@@ -21,6 +23,14 @@ from airflow.providers.standard.operators.python import PythonOperator, External
 
 def fmi_el():
     hook = PostgresHook(postgres_conn_id='weather')
+
+    @task(
+        queue="cves",
+        task_id="dag_context"
+    )
+    def get_dag_context(ti=None, dag_run=None, ds=None):
+        return {"run_type": dag_run.run_type, "ds": ds}
+    
 
     # expensive, but works as a hook, todo: psycopg2 extras batch load
     def execute_query_with_conn_obj(query, datatuple, hook):
@@ -70,16 +80,27 @@ def fmi_el():
                     'fmiopendata'],
         system_site_packages=False
     )
-    def extract():
+    def extract(context):
         import json
         import rasterio
         import fmiopendata
         import datetime as dt
+        import time
         from fmiopendata.wfs import download_stored_query, get_stored_queries, get_stored_query_descriptions
+
+        """ slow down when doing backfills """
+        if context['run_type'] == "backfill":
+            time.sleep(15)
+            start_date = dt.datetime.strptime(context['ds'], "%Y-%m-%d")
+            end_time = start_date + dt.timedelta(days=1)
+        else:
+            t = dt.datetime.now()
+            start_time = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) - dt.timedelta(hours=72)
+            end_time = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0) + dt.timedelta(days=+1)
+
         loc_list=[]
         obs_list=[]
         end_time = dt.datetime.utcnow() - dt.timedelta(hours=3)
-        start_time = end_time - dt.timedelta(hours=72)
         start_time = start_time.isoformat(timespec="seconds") + "Z"
         end_time = end_time.isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("fmi::observations::weather::multipointcoverage",
@@ -141,9 +162,10 @@ def fmi_el():
                                                 cloud_amount,
                                                 present_weather)
                                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (loc_id, date) DO NOTHING""", tuple(row), hook)
+    context = get_dag_context()
 
-    extract_data = extract()
-    create_electricity_tables >> extract_data
+    extract_data = extract(context)
+    context >> create_electricity_tables >> extract_data
     load_obs(extract_data, hook)
 
 fmi_el()
