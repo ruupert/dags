@@ -1,11 +1,14 @@
 import datetime
 import pendulum
+import logging
 
 from airflow.models import Variable
 from airflow.sdk import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.sdk.bases.hook import BaseHook
 from airflow.models.dagrun import DagRun
+
+logger = logging.getLogger(__name__)
 
 @dag(
     schedule="25 1 * * *",
@@ -93,16 +96,18 @@ def fingrid_el():
                 url = f"https://data.fingrid.fi/api/datasets/{id}/data?startTime={start}&endTime={end}&format=json&page={nextPage}&pageSize={pagesize}&locale=en&sortBy=startTime&sortOrder=asc"
                 response = requests.get(url=url, headers=hdr)
                 pagedata = json.loads(response.content)
-                res = pd.concat([res, pd.DataFrame(data=pagedata['data'])], ignore_index=True)
-                if "pagination" in pagedata.keys():
+                logger.info(pagedata)
+                try:
+                    res = pd.concat([res, pd.DataFrame(data=pagedata['data'])], ignore_index=True)
                     nextPage = pagedata['pagination']['nextPage']
                     time.sleep(wait)
-                else:
-                    break
+                except Exception as e:
+                    logger.info(e)
+                    raise Exception
 
             return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
 
-        start = datetime.strptime(ds, "%Y-%m-%d").replace(tzinfo=timezone.utc) - timedelta(days=2)
+        start = datetime.strptime(ds, "%Y-%m-%d") - timedelta(days=2)
         end = start + timedelta(days=2)
 
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
