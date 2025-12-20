@@ -102,8 +102,8 @@ def fingrid_el():
 
             return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
 
-        start = datetime.strptime(ds, "%Y-%m-%d").replace(tzinfo=timezone.utc) - timedelta(days=-1)
-        end = start + timedelta(days=+2)
+        start = datetime.strptime(ds, "%Y-%m-%d").replace(tzinfo=timezone.utc) - timedelta(days=2)
+        end = start + timedelta(days=2)
 
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         with engine.connect() as conn:
