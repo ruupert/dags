@@ -36,7 +36,7 @@ def fingrid_el():
     @task()
     def getDatasets(fingrid_apikey, pagesize, wait, ds=None, ti=None, dag_run=None) -> list:
         if dag_run.run_type == "backfill":
-            return
+            return []
 
         import time
         import json
