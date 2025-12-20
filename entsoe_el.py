@@ -71,8 +71,8 @@ def entsoe_el():
         """ slow down when doing backfills """
         if context['run_type'] == "backfill":
             time.sleep(15)
-            start = datetime.strptime(context['ds'], "%Y-%m-%d")
-            end = start + timedelta(days=1)
+            start_date = datetime.strptime(context['ds'], "%Y-%m-%d")
+            end_date = start_date + timedelta(days=1)
         else:
             t = datetime.now()
             start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
