@@ -33,9 +33,7 @@ def fingrid_el():
             CREATE UNIQUE INDEX IF NOT EXISTS idx_fingrid_data_time_dataset_id ON fingrid_data (time, dataset_id);
         """,
     )
-    @task.virtualenv(
-        requirements=['requests'], system_site_packages=False
-    )
+    @task()
     def getDatasets(fingrid_apikey, pagesize, wait, ds=None, ti=None, dag_run=None) -> list:
         if dag_run.run_type == "backfill":
             return
@@ -64,7 +62,7 @@ def fingrid_el():
             time.sleep(wait)
         return result
 
-    @task.virtualenv(requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=False)
+    @task.virtualenv(requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=True)
     def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str, ds=None, ti=None, dag_run=None):
         import time
         import requests
