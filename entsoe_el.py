@@ -5,6 +5,8 @@ from airflow.sdk import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.python import PythonOperator, ExternalPythonOperator, PythonVirtualenvOperator
+from airflow.models.dagrun import DagRun
+from airflow.models.taskinstance import TaskInstance
 
 @dag(
     schedule="25 13 * * *",
@@ -21,6 +23,13 @@ from airflow.providers.standard.operators.python import PythonOperator, External
 
 def entsoe_el():
     hook = PostgresHook(postgres_conn_id='electricity')
+
+    @task(
+        queue="cves",
+        task_id="dag_context"
+    )
+    def get_dag_context(ti: TaskInstance, dagrun: DagRun, ds=None):
+        return {"type": dagrun.run_type, "ds": ds}
 
     def execute_query_with_conn_obj(query, datatuple, hook):
         conn = hook.get_conn()
@@ -51,15 +60,24 @@ def entsoe_el():
         system_site_packages=False,
         queue="cves"
     )
-    def get_price(apikey):
+    def get_price(apikey, context):
         from datetime import datetime, timedelta, timezone, tzinfo
-
+        import time
         import pandas as pd
         import requests
         from entsoe import EntsoePandasClient
-        t = datetime.now()
-        start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
-        end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0) + timedelta(days=+1)
+
+
+        """ slow down when doing backfills """
+        if context['run_type'] == "backfill":
+            time.sleep(15)
+            start = datetime.strptime(context['ds'], "%Y-%m-%d")
+            end = start + timedelta(days=1)
+        else:
+            t = datetime.now()
+            start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-7)
+            end_date = datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=00, second=0) + timedelta(days=+1)
+
         client = EntsoePandasClient(api_key=apikey)
         start = pd.Timestamp(start_date, tz="Europe/Helsinki")
         end = pd.Timestamp(end_date, tz="Europe/Helsinki")
@@ -79,9 +97,9 @@ def entsoe_el():
             data_tuple = (row[0], row[1] / 10)
             execute_query_with_conn_obj("""INSERT INTO price (date, val) VALUES (%s, %s) ON CONFLICT (date) DO NOTHING""", data_tuple, hook)
 
-
-    price_data = get_price(Variable.get("electricity_costs_entsoe_apikey"))
-    create_electricity_tables >> price_data
+    context = get_dag_context()
+    price_data = get_price(Variable.get("electricity_costs_entsoe_apikey"), context)
+    context >> create_electricity_tables >> price_data
     load_prices(price_data, hook)
 
 entsoe_el()
