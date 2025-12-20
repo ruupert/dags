@@ -28,8 +28,8 @@ def entsoe_el():
         queue="cves",
         task_id="dag_context"
     )
-    def get_dag_context(ti=None, dagrun=None, ds=None):
-        return {"type": dagrun.run_type, "ds": ds}
+    def get_dag_context(ti=None, dag_run=None, ds=None):
+        return {"run_type": dag_run.run_type, "ds": ds}
 
     def execute_query_with_conn_obj(query, datatuple, hook):
         conn = hook.get_conn()
