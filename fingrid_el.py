@@ -7,7 +7,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.sdk.bases.hook import BaseHook
 
 @dag(
-    schedule="25 13 * * *",
+    schedule="25 1 * * *",
     start_date=pendulum.datetime(2024, 3, 16, tz="UTC"),
     catchup=False,
     max_active_runs=1,
@@ -35,11 +35,14 @@ def fingrid_el():
     @task.virtualenv(
         requirements=['requests'], system_site_packages=False
     )
-    def getDatasets(fingrid_apikey, pagesize, wait) -> list:
+    def getDatasets(fingrid_apikey, pagesize, wait, ds=None, ti=None, conn=None, dag_run=None) -> list:
+        if dag_run.run_type == "backfill":
+            return
+
         import time
         import json
         import requests
-        
+
         nextPage = 1
         result = []
         hdr = {
@@ -61,15 +64,20 @@ def fingrid_el():
         return result
 
     @task.virtualenv(requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=False)
-    def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str):
+    def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str, ds=None, ti=None, conn=None, dag_run=None):
         import time
         import requests
         import json
-        from datetime import timedelta, datetime
+        from datetime import timedelta, datetime, timezone
         import sqlalchemy
         from sqlalchemy.dialects.postgresql import insert
         from sqlalchemy.sql import text
         import pandas as pd
+
+        """ slow down when doing backfills """
+        if dag_run.run_type == "backfill":
+            time.sleep(15)
+
         def insert_on_conflict_nothing(table, conn, keys, data_iter):
             data = [dict(zip(keys, row)) for row in data_iter]
             insert_statement = insert(table.table).values(data)
@@ -90,9 +98,10 @@ def fingrid_el():
                 res = pd.concat([res, pd.DataFrame(data=pagedata['data'])], ignore_index=True)
                 time.sleep(wait)
             return res.drop(columns='endTime', errors='ignore').rename(columns={"datasetId":"dataset_id","startTime":"time"})
-        t = datetime.now()
-        start = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=-3)
-        end = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) + timedelta(days=+1)
+
+        start = datetime.strptime(ds, "%Y-%m-%d").replace(tzinfo=timezone.utc) - timedelta(days=-1)
+        end = start + timedelta(days=+2)
+
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
         with engine.connect() as conn:
             for dataset in datasets:
@@ -113,6 +122,11 @@ def fingrid_el():
                             index=False,
                             method=insert_on_conflict_nothing, 
                             chunksize=1000)
+        
+        """ slow down when doing backfills """
+        if dag_run.run_type == "backfill":
+            time.sleep(15)
+
     dburi = BaseHook.get_connection("fingrid_ts").get_uri()
     pagesize = 8000
     wait = 20
