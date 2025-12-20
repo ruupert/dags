@@ -81,7 +81,8 @@ def fmi_el():
         requirements=['Numpy==1.26.4',
                     'rasterio==1.3.9',
                     'fmiopendata'],
-        system_site_packages=False
+        system_site_packages=False,
+        task_id="extract_fmi_obs"
     )
     def extract(context):
         import json
@@ -167,8 +168,8 @@ def fmi_el():
                                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (loc_id, date) DO NOTHING""", tuple(row), hook)
     context = get_dag_context()
 
-    extract_data = extract(context)
-    context >> create_electricity_tables >> extract_data
+    extract_fmi_obs = extract(context)
+    context >> create_electricity_tables >> extract_fmi_obs
     load_obs(extract_data, hook)
 
 fmi_el()
