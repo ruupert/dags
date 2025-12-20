@@ -5,6 +5,7 @@ from airflow.models import Variable
 from airflow.sdk import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.sdk.bases.hook import BaseHook
+from airflow.models.dagrun import DagRun
 
 @dag(
     schedule="25 1 * * *",
@@ -35,7 +36,7 @@ def fingrid_el():
     @task.virtualenv(
         requirements=['requests'], system_site_packages=False
     )
-    def getDatasets(fingrid_apikey, pagesize, wait, ds=None, ti=None, conn=None, dag_run=None) -> list:
+    def getDatasets(fingrid_apikey, pagesize, wait, ds=None, ti=None, dag_run=None) -> list:
         if dag_run.run_type == "backfill":
             return
 
@@ -64,7 +65,7 @@ def fingrid_el():
         return result
 
     @task.virtualenv(requirements=['pandas', 'PyYAML==6.0', 'requests==2.31.0', 'psycopg2-binary==2.9.6', 'SQLAlchemy==2.0.25'], system_site_packages=False)
-    def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str, ds=None, ti=None, conn=None, dag_run=None):
+    def extract(datasets:list, fingrid_apikey:str, wait:int, pagesize:int, dburi:str, ds=None, ti=None, dag_run=None):
         import time
         import requests
         import json
