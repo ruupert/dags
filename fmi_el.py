@@ -104,11 +104,10 @@ def fmi_el():
         else:
             t = dt.datetime.now()
             start_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) - dt.timedelta(hours=72)
-            end_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=0, second=0) + dt.timedelta(days=10)
+            end_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=23, minute=0, second=0) + dt.timedelta(hours=10)
 
         loc_list=[]
         obs_list=[]
-        end_time = dt.datetime.utcnow() - dt.timedelta(hours=3)
         start_time = start_time.isoformat(timespec="seconds") + "Z"
         end_time = end_time.isoformat(timespec="seconds") + "Z"
         obs = download_stored_query("fmi::observations::weather::multipointcoverage",
