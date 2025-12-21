@@ -89,8 +89,11 @@ def fmi_el():
         import rasterio
         import fmiopendata
         import datetime as dt
+        import logging
         import time
         from fmiopendata.wfs import download_stored_query, get_stored_queries, get_stored_query_descriptions
+
+        logger = logging.getLogger(__name__)
 
         """ slow down when doing backfills """
         if context['run_type'] == "backfill":
