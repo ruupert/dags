@@ -104,7 +104,7 @@ def fmi_el():
         else:
             t = dt.datetime.now()
             start_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0) - dt.timedelta(hours=72)
-            end_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=t.hour, minute=0, second=0)
+            end_time = dt.datetime(year=t.year,month=t.month,day=t.day, hour=t.hour-2, minute=0, second=0)
 
         loc_list=[]
         obs_list=[]
