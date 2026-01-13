@@ -61,7 +61,7 @@ def helen_el():
 
 
         t = datetime.now()
-        start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0, tzinfo=timezone.utc) + timedelta(days=-7)
+        start_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0, tzinfo=timezone.utc) + timedelta(days=-10)
         end_date = datetime(year=t.year,month=t.month,day=t.day, hour=0, minute=0, second=0, tzinfo=timezone.utc)
 
         helen = helen_electricity_usage.Helen(username, password, delivery_site)
