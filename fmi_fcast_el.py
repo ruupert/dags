@@ -106,7 +106,7 @@ def fmi_fcast_el():
         import json
         tuples_lists = json.loads(input)
         for row in tuples_lists['locs']:
-            execute_query_with_conn_obj("""INSERT INTO fcast_loc (fcast_loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""", tuple(row), hook)
+            execute_query_with_conn_obj("""INSERT INTO fcast_loc (fcast_loc_id, name, latitude, longitude) VALUES (%s, %s, %s, %s) ON CONFLICT (fcast_loc_id) DO NOTHING""", tuple(row), hook)
         for row in tuples_lists['obs']:
             execute_query_with_conn_obj("""INSERT INTO fcast (
                                     fcast_loc_id, 
