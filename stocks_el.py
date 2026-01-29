@@ -95,7 +95,7 @@ def stocks_el():
             return yf.download(tickers=tickers, start=start, group_by=group_by, repair=repair)
 
         engine = sqlalchemy.create_engine(url=dburi.replace("postgres://", "postgresql://", 1))
-        with engine.connect() as conn:
+        with engine.raw_connection() as conn:
             stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
             vals = { "tickers": tuple(tickers) }
             res = conn.execute(stmt, (vals)).fetchall()
