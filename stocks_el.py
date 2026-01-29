@@ -125,7 +125,7 @@ def stocks_el():
         })
         print(f"TMPDF AFTER RENAMES:\n{tmpdf}\n\nTMPDF COLUMNS:\n{tmpdf.columns}")
         tmpdf.to_sql(name='stock_data', 
-            con=engine,schema='public',
+            con=conn,schema='public',
             if_exists='append',
             index=False,
             method=insert_on_conflict_nothing)
