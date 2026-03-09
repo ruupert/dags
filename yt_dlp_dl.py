@@ -38,7 +38,9 @@ for channel in channels['channels']:
         create_dir = BashOperator(
             task_id="create_download_dir",
             bash_command=f"mkdir -p {download_dir}/downloads; echo 'success'",
-            queue="youtube"
+            queue="youtube",
+            pool_slots=1,
+            pool="youtube"
         )
 
         @task.virtualenv(
@@ -48,7 +50,9 @@ for channel in channels['channels']:
             retries=3,
             retry_delay=timedelta(minutes=5),
             retry_exponential_backoff=True,
-            system_site_packages=False
+            system_site_packages=False,
+            pool_slots=1,
+            pool="youtube"
         )
         def youtube_dl(channel, download_dir):
             import pathlib
