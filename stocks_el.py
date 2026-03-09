@@ -99,7 +99,6 @@ def stocks_el():
             stmt = text("select tmp.time, tmp.ticker from (SELECT DISTINCT ON (ticker) * FROM stock_data WHERE time > now() - INTERVAL '300 days' and ticker in :tickers ORDER BY ticker, time DESC) as tmp;")
             vals = { "tickers": tuple(tickers) }
             res = conn.execute(stmt, (vals)).fetchall()
-            conn.close()
             print(f"TICKERS: {tickers}")
             print(f"TICKER COUNT IN DB: {len(res)}, TICKERS IN {len(tickers)}")
             if len(res) < len(tickers):
@@ -124,12 +123,12 @@ def stocks_el():
             "Ticker": "ticker",
         })
         print(f"TMPDF AFTER RENAMES:\n{tmpdf}\n\nTMPDF COLUMNS:\n{tmpdf.columns}")
-        tmpdf.to_sql(name='stock_data', 
-            con=conn,schema='public',
-            if_exists='append',
-            index=False,
-            method=insert_on_conflict_nothing)
-        conn.close()
+        with engine.connect() as conn:
+            tmpdf.to_sql(name='stock_data', 
+                con=conn,schema='public',
+                if_exists='append',
+                index=False,
+                method=insert_on_conflict_nothing)
 
     refresh_materialized_view = SQLExecuteQueryOperator(
         task_id="refresh_materialized_view",
