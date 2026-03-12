@@ -128,7 +128,7 @@ for channel in channels['channels']:
                 'retries': 10,
                 'sleep_interval': 30.0,
                 'warn_when_outdated': True,
-                'write_all_thumbnails': True,
+                'writethumbnail': True,
                 'writeinfojson': True
             }
             
