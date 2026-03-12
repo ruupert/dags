@@ -112,6 +112,7 @@ for channel in channels['channels']:
                 'writethumbnail': 'all',
                 'ignoreerrors': 'only_download',
                 'addchapters': True,
+                'allowed_extractors': ['all'],
                 'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
                 'post_hooks': [dlhook],
