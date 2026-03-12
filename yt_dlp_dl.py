@@ -44,7 +44,7 @@ for channel in channels['channels']:
         )
 
         @task.virtualenv(
-            requirements=['yt-dlp[default]', 'requests'],
+            requirements=['yt-dlp[default]', 'requests', 'bgutil-ytdlp-pot-provider'],
             task_id="youtube_dl",
             queue="youtube",
             retries=3,
