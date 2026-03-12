@@ -102,24 +102,34 @@ for channel in channels['channels']:
                             f.write(r.content)
 
             ydl_opts = {
-                'lazy_playlist': True,
-                'playlistend': 10,
-                'sleep_interval': 30,
-                'max_sleep_interval': 60,
-                'progress_tih_newline': True,
-                'ratelimit': 2200000,
-                'writeinfojson': True,
-                'writethumbnail': 'all',
-                'ignoreerrors': 'only_download',
-                'addchapters': True,
-                'extractor_args': 'youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416',
-                'download_archive': f'{download_dir}/download_archive',
                 'break_on_existing': True,
+                'download_archive': f'{download_dir}/download_archive',
+                'extract_flat': 'discard_in_playlist',
+                'extractor_args': {'youtubepot-bgutilhttp': {'base_url': ['http://127.0.0.1:4416']}},
+                'fragment_retries': 10,
+                'ignoreerrors': 'only_download',
+                'js_runtimes': {'deno': {'path': '/usr/local/bin/deno'}},
+                'lazy_playlist': True,
+                'max_sleep_interval': 60.0,
+                'noprogress': True,
+                'outtmpl': {'default': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'},
+                'playlistend': 10,
+                'playlistrandom': False,
+                'playlistreverse': False,
                 'post_hooks': [dlhook],
-                'js_runtimes': {
-                    'deno': {'path': '/usr/local/bin/deno'}
-                },
-                'outtmpl': f'{download_dir}/downloads/%(playlist)s/%(title)s-%(id)s.%(ext)s'
+                'postprocessors': [{'add_chapters': True,
+                                    'add_infojson': None,
+                                    'add_metadata': False,
+                                    'key': 'FFmpegMetadata'},
+                                    {'key': 'FFmpegConcat',
+                                    'only_multi_video': True,
+                                    'when': 'playlist'}],
+                'ratelimit': 2200000,
+                'retries': 10,
+                'sleep_interval': 30.0,
+                'warn_when_outdated': True,
+                'write_all_thumbnails': True,
+                'writeinfojson': True
             }
             
             try:
