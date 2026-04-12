@@ -7,7 +7,7 @@ from airflow.sdk import dag, task
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.models.dag import DAG
 from airflow.models import Variable
-from airflow.utils.dag_parsing_context import get_parsing_context
+from airflow.sdk import get_parsing_context
 from airflow.exceptions import AirflowFailException, AirflowRescheduleException
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookHook
 from airflow.providers.standard.operators.empty import EmptyOperator
