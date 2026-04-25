@@ -155,6 +155,56 @@ for channel in channels['channels']:
                             download_thumb('banner_uncropped', tvshow_info['thumbnails'], f"{dest_dir}/backdrop.jpg")
                     if set(['channel', 'title', 'description', 'upload_date']).issubset(file_info.keys()):
                         episode_info = file.replace(pathlib.Path(file).suffix, ".nfo")
-                        create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])    
+                        create_episode_nfo(episode_info, file_info['title'], file_info['description'], file_info['channel'], file_info['upload_date'])
+            return res
+        
+        @task(
+            task_id="jellyfin_notify",
+            retries=5,
+            retry_delay=timedelta(minutes=5),
+            retry_exponential_backoff=True,
+        )
+        def jellyfin_notify(jellyfin_user, jellyfin_pass, jellyfin_url, files):
+            import requests
+
+            AUTHORIZATION = 'MediaBrowser Client="other", Device="inotifyscript", DeviceId="fileserver", Version="0.0.0"'
+            
+            def authenticate(username, password, url):
+                auth_data = {
+                    'username': username,
+                    'Pw': password
+                }
+                headers = {}
+                headers['Authorization'] = AUTHORIZATION
+                r = requests.post(url + '/Users/AuthenticateByName', headers=headers, json=auth_data)
+                token = r.json().get('AccessToken')
+                return token
+
+            token = authenticate(jellyfin_user,jellyfin_pass,jellyfin_url)
+
+            for file in files:
+                notify_path = str(file).replace('/opt','/media').replace('downloads/','')
+                body = {
+                    "Updates": [
+                        {
+                            "Path": f"{notify_path}",
+                            "UpdateType": "Created"
+                        }
+                    ]
+                }
+                headers = {
+                    'Authorization': f'{AUTHORIZATION}, Token="{token}"'
+                }
+                response = requests.post(url=f"{jellyfin_url}/Library/Media/Updated", headers=headers, json=body)
+                if response.status_code == 204:
+                    print(f"Sent succesfully: {notify_path}")
+                else:
+                    print(f"Send failed: {notify_path}")
+
+
         ytl = youtube_dl(channel, download_dir)
-        create_dir >> ytl
+        notify = jellyfin_notify(   Variable.get("jellyfin_user"),
+                                    Variable.get("jellyfin_pass"),
+                                    Variable.get("jellyfin_url"),
+                                    ytl)
+        create_dir >> ytl >> notify
