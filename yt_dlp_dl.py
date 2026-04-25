@@ -166,6 +166,9 @@ for channel in channels['channels']:
         )
         def jellyfin_notify(jellyfin_user, jellyfin_pass, jellyfin_url, files):
             import requests
+            
+            if len(files) == 0:
+                return
 
             AUTHORIZATION = 'MediaBrowser Client="other", Device="inotifyscript", DeviceId="fileserver", Version="0.0.0"'
             
